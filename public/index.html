@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Socket.IO -->
+ 
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   
   <!-- PeerJS -->
@@ -16,36 +17,31 @@
 </head>
 <body class="bg-gray-900 text-white h-screen flex flex-col">
 
+  <!-- Header -->
   <header class="w-full bg-gray-800 p-4 flex justify-between items-center">
     <h1 class="text-lg font-bold">Video Call</h1>
-    <button id="start-call" class="bg-green-500 px-4 py-2 rounded hover:bg-green-600">Start Call</button>
-    <button id="end-call" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600 hidden">End Call</button>
+    <button id="start-call" class="bg-green-500 px-4 py-2 rounded hover:bg-green-600">
+      Start Call
+    </button>
+    <button id="end-call" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600 hidden">
+      End Call
+    </button>
   </header>
 
+  <!-- Main Content -->
   <div class="flex-grow flex flex-col items-center justify-center">
     <p id="call-status" class="text-gray-400 mb-4">Click "Start Call" to initiate a video call.</p>
     <div id="video-grid" class="flex flex-wrap gap-4 justify-center"></div>
-
-    <!-- Incoming Call Modal -->
-    <div id="incoming-call" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div class="bg-gray-800 p-6 rounded-lg text-center">
-        <p class="text-xl text-white mb-4">Incoming Call!</p>
-        <button id="answer-call" class="bg-green-500 px-6 py-3 rounded hover:bg-green-600">Answer</button>
-        <button id="reject-call" class="bg-red-500 px-6 py-3 rounded hover:bg-red-600 mt-4">Reject</button>
-      </div>
-    </div>
   </div>
 
   <script>
-    const socket = io();  // Adjust this URL when necessary
+    // Initialize Socket.IO client
+    const socket = io("http://localhost:3000");
 
     const videoGrid = document.getElementById("video-grid");
     const callStatus = document.getElementById("call-status");
     const startCallButton = document.getElementById("start-call");
     const endCallButton = document.getElementById("end-call");
-    const incomingCallModal = document.getElementById("incoming-call");
-    const answerCallButton = document.getElementById("answer-call");
-    const rejectCallButton = document.getElementById("reject-call");
 
     const myVideo = document.createElement("video");
     myVideo.muted = true;
@@ -61,26 +57,21 @@
       callStatus.textContent = "Ready to initiate a call.";
     });
 
-    // Get the current room ID from the URL path
-    const roomId = window.location.pathname.slice(1);
-
-    socket.emit("join-room", roomId, peer.id); // Join the room
-    socket.emit("start-call", roomId, peer.id); // Notify other users in the room
-
-    // When starting a call
+    // Start Call Button Logic
     startCallButton.addEventListener("click", () => {
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
           myVideoStream = stream;
           callActive = true;
+
           addVideoStream(myVideo, stream);
 
           startCallButton.classList.add("hidden");
           endCallButton.classList.remove("hidden");
           callStatus.textContent = "Call in progress...";
 
-          socket.emit("join-room", roomId, peer.id);
+          socket.emit("join-room", window.location.pathname.slice(1), peer.id);
 
           peer.on("call", (call) => {
             call.answer(stream);
@@ -104,50 +95,25 @@
         });
     });
 
-    // Incoming Call: Show the modal
-    socket.on("call-incoming", (userId) => {
-      callStatus.textContent = `User ${userId} is calling!`;
-      incomingCallModal.classList.remove("hidden");
+    // End Call Button Logic
+    endCallButton.addEventListener("click", () => {
+      if (callActive) {
+        myVideoStream.getTracks().forEach((track) => track.stop()); // Stop local video/audio
 
-      answerCallButton.addEventListener("click", () => {
-        answerCall(userId);
-        incomingCallModal.classList.add("hidden");
-      });
+        for (const peerId in peers) {
+          peers[peerId].close(); // Close all peer connections
+        }
 
-      rejectCallButton.addEventListener("click", () => {
-        rejectCall(userId);
-        incomingCallModal.classList.add("hidden");
-      });
+        videoGrid.innerHTML = ""; // Clear video elements
+        callStatus.textContent = "Call ended.";
+        callActive = false;
+
+        endCallButton.classList.add("hidden");
+        startCallButton.classList.remove("hidden");
+      }
     });
 
-    // Answer the call
-    function answerCall(userId) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          const call = peer.call(userId, stream);
-          const video = document.createElement("video");
-          call.on("stream", (userVideoStream) => {
-            addVideoStream(video, userVideoStream);
-          });
-
-          addVideoStream(myVideo, stream);
-          callActive = true;
-        })
-        .catch((err) => {
-          console.error("Error answering call:", err);
-        });
-    }
-
-    // Reject the call (close the peer connection)
-    function rejectCall(userId) {
-      if (peers[userId]) {
-        peers[userId].close();
-        callStatus.textContent = "Call rejected.";
-      }
-    }
-
-    // Connect to a new user
+    // Connect to new user
     function connectToNewUser(userId, stream) {
       const call = peer.call(userId, stream);
       const video = document.createElement("video");
