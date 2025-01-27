@@ -24,8 +24,7 @@ io.on("connection", (socket) => {
   socket.on("join-room", (roomId, userId) => {
     console.log(`User ${userId} joined room ${roomId}`);
     socket.join(roomId);
-
-    // Notify others in the room about this new user
+    // Notify other users about this connection
     socket.to(roomId).emit("user-connected", userId);
 
     // Handle disconnection
@@ -35,14 +34,12 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Listen for a user initiating a call
+  // Listen for start-call and broadcast to other users that a call is incoming
   socket.on("start-call", (roomId, userId) => {
-    // Notify others in the room that a call is starting
+    console.log(`Call started by ${userId} in room ${roomId}`);
     socket.to(roomId).emit("call-incoming", userId);
   });
-
 });
-
 server.listen(3000, () => {
   console.log("Server is running on https://6797c0d1bc90030d26398a24--guileless-druid-2e449f.netlify.app:3000");
 });
