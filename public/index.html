@@ -35,8 +35,7 @@
 
   <script>
     // Initialize Socket.IO client
-    const socket = io("http://localhost:3000");
-
+    const socket = io();
     const videoGrid = document.getElementById("video-grid");
     const callStatus = document.getElementById("call-status");
     const startCallButton = document.getElementById("start-call");
