@@ -9,22 +9,26 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-// Generate a unique room ID
+// Serve the index.html file when visiting any room
 app.get("/", (req, res) => {
-  res.redirect(uuidV4());
+  res.redirect(uuidV4());  // This redirects to a random room
 });
 
-// Serve the room
+// Serve the room when it's visited via roomId
 app.get("/:room", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
+// Handling Socket.IO connections
 io.on("connection", (socket) => {
-  // Listen for user joining a room
+  console.log(`New user connected: ${socket.id}`);
+
+  // Join a room when the user is added to it
   socket.on("join-room", (roomId, userId) => {
     console.log(`User ${userId} joined room ${roomId}`);
     socket.join(roomId);
-    // Notify other users about this connection
+
+    // Notify others in the room about this new user
     socket.to(roomId).emit("user-connected", userId);
 
     // Handle disconnection
@@ -34,12 +38,19 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Listen for start-call and broadcast to other users that a call is incoming
+  // Notify all other users when the call has been started
   socket.on("start-call", (roomId, userId) => {
     console.log(`Call started by ${userId} in room ${roomId}`);
     socket.to(roomId).emit("call-incoming", userId);
   });
+
+  // Handle when user answers the incoming call
+  socket.on("answer-call", (roomId, userId) => {
+    console.log(`User ${userId} accepted the call in room ${roomId}`);
+    socket.to(roomId).emit("call-accepted", userId);
+  });
 });
+
 server.listen(3000, () => {
-  console.log("Server is running on https://6797c0d1bc90030d26398a24--guileless-druid-2e449f.netlify.app:3000");
+  console.log("Server is running on http://localhost:3000");
 });
