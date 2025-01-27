@@ -31,5 +31,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+  console.log("Server is running on https://6797c0d1bc90030d26398a24--guileless-druid-2e449f.netlify.app:3000");
 });
