@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Call</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Socket.IO -->
+ 
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  
+  <!-- PeerJS -->
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="w-full bg-gray-800 p-4 flex justify-between items-center">
+    <h1 class="text-lg font-bold">Video Call</h1>
+    <button id="start-call" class="bg-green-500 px-4 py-2 rounded hover:bg-green-600">
+      Start Call
+    </button>
+    <button id="end-call" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600 hidden">
+      End Call
+    </button>
+  </header>
+
+  <!-- Main Content -->
+  <div class="flex-grow flex flex-col items-center justify-center">
+    <p id="call-status" class="text-gray-400 mb-4">Click "Start Call" to initiate a video call.</p>
+    <div id="video-grid" class="flex flex-wrap gap-4 justify-center"></div>
+  </div>
+
+  <script>
+    // Initialize Socket.IO client
+    const socket = io("http://localhost:3000");
+
+    const videoGrid = document.getElementById("video-grid");
+    const callStatus = document.getElementById("call-status");
+    const startCallButton = document.getElementById("start-call");
+    const endCallButton = document.getElementById("end-call");
+
+    const myVideo = document.createElement("video");
+    myVideo.muted = true;
+
+    const peer = new Peer();
+    const peers = {};
+    let myVideoStream;
+    let callActive = false;
+
+    // PeerJS: On connection
+    peer.on("open", (id) => {
+      startCallButton.classList.remove("hidden");
+      callStatus.textContent = "Ready to initiate a call.";
+    });
+
+    // Start Call Button Logic
+    startCallButton.addEventListener("click", () => {
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          myVideoStream = stream;
+          callActive = true;
+
+          addVideoStream(myVideo, stream);
+
+          startCallButton.classList.add("hidden");
+          endCallButton.classList.remove("hidden");
+          callStatus.textContent = "Call in progress...";
+
+          socket.emit("join-room", window.location.pathname.slice(1), peer.id);
+
+          peer.on("call", (call) => {
+            call.answer(stream);
+            const video = document.createElement("video");
+            call.on("stream", (userVideoStream) => {
+              addVideoStream(video, userVideoStream);
+            });
+          });
+
+          socket.on("user-connected", (userId) => {
+            connectToNewUser(userId, stream);
+          });
+
+          socket.on("user-disconnected", (userId) => {
+            if (peers[userId]) peers[userId].close();
+          });
+        })
+        .catch((err) => {
+          callStatus.textContent = "Failed to access camera or microphone.";
+          console.error(err);
+        });
+    });
+
+    // End Call Button Logic
+    endCallButton.addEventListener("click", () => {
+      if (callActive) {
+        myVideoStream.getTracks().forEach((track) => track.stop()); // Stop local video/audio
+
+        for (const peerId in peers) {
+          peers[peerId].close(); // Close all peer connections
+        }
+
+        videoGrid.innerHTML = ""; // Clear video elements
+        callStatus.textContent = "Call ended.";
+        callActive = false;
+
+        endCallButton.classList.add("hidden");
+        startCallButton.classList.remove("hidden");
+      }
+    });
+
+    // Connect to new user
+    function connectToNewUser(userId, stream) {
+      const call = peer.call(userId, stream);
+      const video = document.createElement("video");
+      call.on("stream", (userVideoStream) => {
+        addVideoStream(video, userVideoStream);
+      });
+      call.on("close", () => {
+        video.remove();
+      });
+
+      peers[userId] = call;
+    }
+
+    // Add video stream to the DOM
+    function addVideoStream(video, stream) {
+      video.srcObject = stream;
+      video.className = "rounded shadow-lg";
+      video.addEventListener("loadedmetadata", () => {
+        video.play();
+      });
+      videoGrid.append(video);
+    }
+  </script>
+</body>
+</html>
