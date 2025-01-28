@@ -8,66 +8,88 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen">
-  <h1 class="text-4xl font-bold mb-8">Video Call App Devolved by Adarsh Usha Singh </h1>
-  <div class="flex space-x-4">
-    <div>
-      <video id="localVideo" autoplay muted class="w-64 h-48 bg-gray-800 rounded-lg"></video>
-      <p class="text-center mt-2">You</p>
+  <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-6 px-4">
+    Video Call App Developed by Adarsh Usha Singh
+  </h1>
+  
+  <!-- Video Containers -->
+  <div class="flex flex-wrap justify-center gap-6 mb-6 w-full max-w-4xl px-4">
+    <div class="flex flex-col items-center">
+      <video id="localVideo" autoplay muted class="w-40 h-32 md:w-64 md:h-48 bg-gray-800 rounded-lg"></video>
+      <p class="text-center mt-2 text-sm md:text-base">You</p>
     </div>
-    <div>
-      <video id="remoteVideo" autoplay class="w-64 h-48 bg-gray-800 rounded-lg"></video>
-      <p class="text-center mt-2">Partner</p>
+    <div class="flex flex-col items-center">
+      <video id="remoteVideo" autoplay class="w-40 h-32 md:w-64 md:h-48 bg-gray-800 rounded-lg"></video>
+      <p class="text-center mt-2 text-sm md:text-base">Partner</p>
     </div>
   </div>
-  <div class="mt-8">
-    <input type="text" id="peerIdInput" placeholder="Enter Partner's ID" class="p-2 rounded-lg bg-gray-700 text-white">
-    <button id="callButton" class="ml-2 p-2 bg-blue-600 rounded-lg hover:bg-blue-700">Call</button>
+
+  <!-- Input and Buttons -->
+  <div class="flex flex-wrap justify-center items-center gap-4 w-full px-4">
+    <input
+      type="text"
+      id="peerIdInput"
+      placeholder="Enter Partner's ID"
+      class="p-2 w-64 md:w-80 rounded-lg bg-gray-700 text-white focus:ring focus:ring-blue-500 focus:outline-none"
+    />
+    <button
+      id="callButton"
+      class="p-2 w-20 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring focus:ring-blue-500 focus:outline-none"
+    >
+      Call
+    </button>
   </div>
-  <p class="mt-4">Your ID: <span id="myPeerId" class="font-bold"></span></p>
-  <!-- <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script> -->
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script >
+  
+  <!-- Display Your ID -->
+  <p class="mt-4 text-center px-4 text-sm md:text-base">
+    Your ID: <span id="myPeerId" class="font-bold text-blue-400"></span>
+  </p>
+
+  <!-- PeerJS Script -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
     // Initialize PeerJS
-const peer = new Peer();
+    const peer = new Peer();
 
-// Get DOM elements
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-const myPeerId = document.getElementById('myPeerId');
-const peerIdInput = document.getElementById('peerIdInput');
-const callButton = document.getElementById('callButton');
+    // Get DOM elements
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const myPeerId = document.getElementById('myPeerId');
+    const peerIdInput = document.getElementById('peerIdInput');
+    const callButton = document.getElementById('callButton');
 
-// Display your own Peer ID
-peer.on('open', (id) => {
-  myPeerId.textContent = id;
-});
-
-// Get local video stream
-navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-  .then((stream) => {
-    localVideo.srcObject = stream;
-
-    // Call another peer
-    callButton.addEventListener('click', () => {
-      const partnerId = peerIdInput.value;
-      const call = peer.call(partnerId, stream);
-
-      call.on('stream', (remoteStream) => {
-        remoteVideo.srcObject = remoteStream;
-      });
+    // Display your own Peer ID
+    peer.on('open', (id) => {
+      myPeerId.textContent = id;
     });
 
-    // Answer incoming calls
-    peer.on('call', (call) => {
-      call.answer(stream);
-      call.on('stream', (remoteStream) => {
-        remoteVideo.srcObject = remoteStream;
+    // Get local video stream
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        localVideo.srcObject = stream;
+
+        // Call another peer
+        callButton.addEventListener('click', () => {
+          const partnerId = peerIdInput.value.trim();
+          if (partnerId) {
+            const call = peer.call(partnerId, stream);
+            call.on('stream', (remoteStream) => {
+              remoteVideo.srcObject = remoteStream;
+            });
+          }
+        });
+
+        // Answer incoming calls
+        peer.on('call', (call) => {
+          call.answer(stream);
+          call.on('stream', (remoteStream) => {
+            remoteVideo.srcObject = remoteStream;
+          });
+        });
+      })
+      .catch((error) => {
+        console.error('Error accessing media devices:', error);
       });
-    });
-  })
-  .catch((error) => {
-    console.error('Error accessing media devices:', error);
-  });
   </script>
 </body>
 </html>
