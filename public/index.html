@@ -1,114 +1,219 @@
-  <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Call App</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .call-buttons {
+      @apply rounded-full p-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all;
+    }
+    .gradient-bg {
+      background: linear-gradient(45deg, #833ab4, #fd1d1d, #fcb045);
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen">
-  <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-6 px-4">
-    Video Call App Developed by Adarsh Usha Singh
-  </h1>
-  
-  <!-- Video Containers -->
-  <div class="flex flex-wrap justify-center gap-6 mb-6 w-full max-w-4xl px-4">
-    <div class="flex flex-col items-center">
-      <video id="localVideo" autoplay muted class="w-40 h-32 md:w-64 md:h-48 bg-gray-800 rounded-lg"></video>
-      <p class="text-center mt-2 text-sm md:text-base">You</p>
-    </div>
-    <div class="flex flex-col items-center">
-      <video id="remoteVideo" autoplay class="w-40 h-32 md:w-64 md:h-48 bg-gray-800 rounded-lg"></video>
-      <p class="text-center mt-2 text-sm md:text-base">Partner</p>
+<body class="bg-black text-white relative h-screen overflow-hidden">
+  <!-- Incoming Call Modal -->
+  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+    <div class="text-center">
+      <h2 class="text-2xl mb-4">Incoming Call</h2>
+      <div class="flex gap-4 justify-center">
+        <button id="declineCall" class="call-buttons bg-red-500">✖</button>
+        <button id="acceptCall" class="call-buttons bg-green-500">✔</button>
+      </div>
     </div>
   </div>
 
-  <!-- Input and Buttons -->
-  <div class="flex flex-wrap justify-center items-center gap-4 w-full px-4">
-    <input
-      type="number"
-      id="peerIdInput"
-      placeholder="Enter Partner's ID (4 digits)"
-      class="p-2 w-64 md:w-80 rounded-lg bg-gray-700 text-white focus:ring focus:ring-blue-500 focus:outline-none"
-      min="1000"
-      max="9999"
-    />
-    <button
-      id="callButton"
-      class="p-2 w-20 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring focus:ring-blue-500 focus:outline-none"
-    >
-      Call
-    </button>
-  </div>
+  <div class="gradient-bg absolute inset-0 opacity-50"></div>
   
-  <!-- Display Your ID -->
-  <p class="mt-4 text-center px-4 text-sm md:text-base">
-    Your ID: <span id="myPeerId" class="font-bold text-blue-400"></span>
-  </p>
+  <!-- Main Content -->
+  <div class="relative z-10 container mx-auto px-4 h-full">
+    <!-- Video Containers -->
+    <div class="h-full flex flex-col">
+      <!-- Remote Video -->
+      <div class="flex-1 relative rounded-2xl overflow-hidden bg-black">
+        <video id="remoteVideo" autoplay class="w-full h-full object-cover"></video>
+      </div>
+      
+      <!-- Local Video -->
+      <div class="absolute bottom-4 right-4 w-32 h-48 rounded-xl overflow-hidden shadow-lg">
+        <video id="localVideo" autoplay muted class="w-full h-full object-cover"></video>
+      </div>
+
+      <!-- Call Controls -->
+      <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-4">
+        <button id="endCall" class="call-buttons hidden">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85c-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+          </svg>
+        </button>
+        <button id="toggleVideo" class="call-buttons">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15 8v8H5V8h10zm1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/>
+          </svg>
+        </button>
+        <button id="toggleMute" class="call-buttons">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Call Interface -->
+      <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
+        <h1 class="text-xl font-bold">Video Call</h1>
+        <p class="text-sm">Your ID: <span id="myPeerId" class="font-mono text-blue-400"></span></p>
+      </div>
+
+      <!-- Dialer -->
+      <div class="absolute bottom-28 left-1/2 transform -translate-x-1/2 flex gap-2">
+        <input
+          type="number"
+          id="peerIdInput"
+          placeholder="Enter ID"
+          class="w-32 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm focus:outline-none"
+          min="1000"
+          max="9999"
+        />
+        <button
+          id="callButton"
+          class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-5 5 5 5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    // Generate 4-digit numeric ID (1000-9999)
+    let currentCall = null;
+    let localStream = null;
+    let isVideoEnabled = true;
+    let isAudioEnabled = true;
+
+    // Generate 4-digit ID
     const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Initialize PeerJS with numeric ID
+    // Initialize PeerJS with improved configuration
     const peer = new Peer(generateNumericId(), {
       debug: 0,
-      config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'turn:global.relay.metered.ca:80', username: 'YOUR_TURN_USERNAME', credential: 'YOUR_TURN_CREDENTIAL' }
+        ]
+      }
     });
 
     // DOM Elements
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const myPeerId = document.getElementById('myPeerId');
-    const peerIdInput = document.getElementById('peerIdInput');
-    const callButton = document.getElementById('callButton');
+    const elements = {
+      localVideo: document.getElementById('localVideo'),
+      remoteVideo: document.getElementById('remoteVideo'),
+      myPeerId: document.getElementById('myPeerId'),
+      peerIdInput: document.getElementById('peerIdInput'),
+      callButton: document.getElementById('callButton'),
+      incomingCallModal: document.getElementById('incomingCallModal'),
+      acceptCall: document.getElementById('acceptCall'),
+      declineCall: document.getElementById('declineCall'),
+      endCall: document.getElementById('endCall'),
+      toggleVideo: document.getElementById('toggleVideo'),
+      toggleMute: document.getElementById('toggleMute')
+    };
 
-    // Display generated ID
+    // Initialize Media
+    const initMedia = async () => {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: true 
+        });
+        elements.localVideo.srcObject = localStream;
+      } catch (error) {
+        alert('Camera/microphone access required!');
+        console.error('Media Error:', error);
+      }
+    };
+
+    // PeerJS Events
     peer.on('open', (id) => {
-      myPeerId.textContent = id;
-      peerIdInput.placeholder = `Enter Partner's ID (${id.length}-digit)`;
+      elements.myPeerId.textContent = id;
     });
 
-    // Error handling
     peer.on('error', (err) => {
       console.error('PeerJS Error:', err);
       alert(`Error: ${err.type} - ${err.message}`);
     });
 
-    // Media handling
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        localVideo.srcObject = stream;
+    peer.on('call', async (call) => {
+      elements.incomingCallModal.classList.remove('hidden');
+      
+      elements.declineCall.onclick = () => {
+        call.close();
+        elements.incomingCallModal.classList.add('hidden');
+      };
 
-        // Call handler
-        callButton.addEventListener('click', () => {
-          const partnerId = peerIdInput.value.trim();
-          if (partnerId && partnerId.length === 4) {
-            const call = peer.call(partnerId, stream);
-            call.on('stream', (remoteStream) => {
-              remoteVideo.srcObject = remoteStream;
-            });
-          }
+      elements.acceptCall.onclick = async () => {
+        elements.incomingCallModal.classList.add('hidden');
+        elements.endCall.classList.remove('hidden');
+        
+        call.on('stream', (remoteStream) => {
+          elements.remoteVideo.srcObject = remoteStream;
         });
+        
+        call.answer(localStream);
+        currentCall = call;
+      };
+    });
 
-        // Answer calls
-        peer.on('call', (call) => {
-          call.answer(stream);
-          call.on('stream', (remoteStream) => {
-            remoteVideo.srcObject = remoteStream;
-          });
+    // Call Handling
+    elements.callButton.addEventListener('click', () => {
+      const partnerId = elements.peerIdInput.value.trim();
+      if (partnerId.length === 4) {
+        const call = peer.call(partnerId, localStream);
+        elements.endCall.classList.remove('hidden');
+        
+        call.on('stream', (remoteStream) => {
+          elements.remoteVideo.srcObject = remoteStream;
         });
-      })
-      .catch((error) => {
-        console.error('Media Error:', error);
-        alert('Camera/microphone access required!');
-      });
+        
+        currentCall = call;
+      }
+    });
 
-    // Input validation
-    peerIdInput.addEventListener('input', (e) => {
+    // End Call
+    elements.endCall.addEventListener('click', () => {
+      if (currentCall) {
+        currentCall.close();
+        elements.remoteVideo.srcObject = null;
+        elements.endCall.classList.add('hidden');
+      }
+    });
+
+    // Toggle Media
+    elements.toggleVideo.addEventListener('click', () => {
+      isVideoEnabled = !isVideoEnabled;
+      localStream.getVideoTracks()[0].enabled = isVideoEnabled;
+      elements.toggleVideo.classList.toggle('bg-red-500', !isVideoEnabled);
+    });
+
+    elements.toggleMute.addEventListener('click', () => {
+      isAudioEnabled = !isAudioEnabled;
+      localStream.getAudioTracks()[0].enabled = isAudioEnabled;
+      elements.toggleMute.classList.toggle('bg-red-500', !isAudioEnabled);
+    });
+
+    // Input Validation
+    elements.peerIdInput.addEventListener('input', (e) => {
       e.target.value = e.target.value.slice(0, 4);
     });
+
+    // Initialize
+    initMedia();
   </script>
 </body>
 </html>
