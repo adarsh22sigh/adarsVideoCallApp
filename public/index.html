@@ -170,9 +170,11 @@
             .find(s => s.track.kind === videoTrack.kind);
           sender.replaceTrack(videoTrack);
         }
+        return true;
       } catch (error) {
         alert('Camera/microphone access required!');
         console.error('Media Error:', error);
+        return false;
       }
     };
 
@@ -199,29 +201,46 @@
 
       elements.acceptCall.onclick = async () => {
         elements.incomingCallModal.classList.add('hidden');
+        
+        if (!localStream) {
+          const success = await initMedia();
+          if (!success) {
+            alert('Please allow camera/microphone access to accept call!');
+            call.close();
+            return;
+          }
+        }
+
         elements.endCall.classList.remove('hidden');
+        call.answer(localStream);
+        currentCall = call;
         
         call.on('stream', (remoteStream) => {
           elements.remoteVideo.srcObject = remoteStream;
         });
-        
-        call.answer(localStream);
-        currentCall = call;
       };
     });
 
-    elements.callButton.addEventListener('click', () => {
+    elements.callButton.addEventListener('click', async () => {
       const partnerId = elements.peerIdInput.value.trim();
-      if (partnerId.length === 4) {
-        const call = peer.call(partnerId, localStream);
-        elements.endCall.classList.remove('hidden');
-        
-        call.on('stream', (remoteStream) => {
-          elements.remoteVideo.srcObject = remoteStream;
-        });
-        
-        currentCall = call;
+      if (partnerId.length !== 4) return;
+
+      if (!localStream) {
+        const success = await initMedia();
+        if (!success) {
+          alert('Please allow camera/microphone access to make call!');
+          return;
+        }
       }
+
+      const call = peer.call(partnerId, localStream);
+      elements.endCall.classList.remove('hidden');
+      
+      call.on('stream', (remoteStream) => {
+        elements.remoteVideo.srcObject = remoteStream;
+      });
+      
+      currentCall = call;
     });
 
     elements.endCall.addEventListener('click', () => {
