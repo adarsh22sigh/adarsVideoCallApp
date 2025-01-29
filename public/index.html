@@ -1,10 +1,9 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Call App</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen">
@@ -27,10 +26,12 @@
   <!-- Input and Buttons -->
   <div class="flex flex-wrap justify-center items-center gap-4 w-full px-4">
     <input
-      type="text"
+      type="number"
       id="peerIdInput"
-      placeholder="Enter Partner's ID"
+      placeholder="Enter Partner's ID (4 digits)"
       class="p-2 w-64 md:w-80 rounded-lg bg-gray-700 text-white focus:ring focus:ring-blue-500 focus:outline-none"
+      min="1000"
+      max="9999"
     />
     <button
       id="callButton"
@@ -45,33 +46,45 @@
     Your ID: <span id="myPeerId" class="font-bold text-blue-400"></span>
   </p>
 
-  <!-- PeerJS Script -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    // Initialize PeerJS
-    const peer = new Peer();
+    // Generate 4-digit numeric ID (1000-9999)
+    const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Get DOM elements
+    // Initialize PeerJS with numeric ID
+    const peer = new Peer(generateNumericId(), {
+      debug: 0,
+      config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+    });
+
+    // DOM Elements
     const localVideo = document.getElementById('localVideo');
     const remoteVideo = document.getElementById('remoteVideo');
     const myPeerId = document.getElementById('myPeerId');
     const peerIdInput = document.getElementById('peerIdInput');
     const callButton = document.getElementById('callButton');
 
-    // Display your own Peer ID
+    // Display generated ID
     peer.on('open', (id) => {
       myPeerId.textContent = id;
+      peerIdInput.placeholder = `Enter Partner's ID (${id.length}-digit)`;
     });
 
-    // Get local video stream
+    // Error handling
+    peer.on('error', (err) => {
+      console.error('PeerJS Error:', err);
+      alert(`Error: ${err.type} - ${err.message}`);
+    });
+
+    // Media handling
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then((stream) => {
         localVideo.srcObject = stream;
 
-        // Call another peer
+        // Call handler
         callButton.addEventListener('click', () => {
           const partnerId = peerIdInput.value.trim();
-          if (partnerId) {
+          if (partnerId && partnerId.length === 4) {
             const call = peer.call(partnerId, stream);
             call.on('stream', (remoteStream) => {
               remoteVideo.srcObject = remoteStream;
@@ -79,7 +92,7 @@
           }
         });
 
-        // Answer incoming calls
+        // Answer calls
         peer.on('call', (call) => {
           call.answer(stream);
           call.on('stream', (remoteStream) => {
@@ -88,8 +101,14 @@
         });
       })
       .catch((error) => {
-        console.error('Error accessing media devices:', error);
+        console.error('Media Error:', error);
+        alert('Camera/microphone access required!');
       });
+
+    // Input validation
+    peerIdInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.slice(0, 4);
+    });
   </script>
 </body>
 </html>
