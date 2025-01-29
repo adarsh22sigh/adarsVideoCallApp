@@ -12,6 +12,11 @@
   </style>
 </head>
 <body class="bg-black text-white relative h-screen overflow-hidden">
+  <!-- Network Status Indicator -->
+  <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded-full bg-black/80 text-sm" id="networkStatus">
+    📶 Good Network
+  </div>
+
   <!-- Incoming Call Modal -->
   <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
     <div class="text-center">
@@ -90,6 +95,8 @@
     let localStream = null;
     let isVideoEnabled = true;
     let isAudioEnabled = true;
+    let currentResolution = '1280x720';
+    let networkCheckInterval;
 
     const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -99,7 +106,8 @@
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'turn:global.relay.metered.ca:80', username: '5ee7cfc816da5c0395dd306e', credential: 'TUQP0WknEKBhwTkG' }
-        ]
+        ],
+        iceTransportPolicy: 'relay'
       }
     });
 
@@ -114,16 +122,54 @@
       declineCall: document.getElementById('declineCall'),
       endCall: document.getElementById('endCall'),
       toggleVideo: document.getElementById('toggleVideo'),
-      toggleMute: document.getElementById('toggleMute')
+      toggleMute: document.getElementById('toggleMute'),
+      networkStatus: document.getElementById('networkStatus')
     };
 
-    const initMedia = async () => {
+    const getVideoConstraints = (resolution) => {
+      const resolutions = {
+        '1280x720': { width: { ideal: 1280 }, height: { ideal: 720 } },
+        '640x360': { width: { ideal: 640 }, height: { ideal: 360 } }
+      };
+      return resolutions[resolution] || resolutions['640x360'];
+    };
+
+    const applyNetworkOptimization = async () => {
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const isSlowNetwork = connection ? (connection.effectiveType === 'slow-2g' || connection.downlink < 1.5) : false;
+
+      if (isSlowNetwork && currentResolution !== '640x360') {
+        elements.networkStatus.textContent = '📶 Low Network (SD)';
+        elements.networkStatus.classList.add('text-yellow-500');
+        currentResolution = '640x360';
+        await initMedia(getVideoConstraints(currentResolution));
+      } else if (!isSlowNetwork && currentResolution !== '1280x720') {
+        elements.networkStatus.textContent = '📶 Good Network (HD)';
+        elements.networkStatus.classList.remove('text-yellow-500');
+        currentResolution = '1280x720';
+        await initMedia(getVideoConstraints(currentResolution));
+      }
+    };
+
+    const initMedia = async (constraints = getVideoConstraints('1280x720')) => {
       try {
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+        }
+
         localStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: true 
+          video: constraints,
+          audio: { noiseSuppression: true, echoCancellation: true }
         });
+
         elements.localVideo.srcObject = localStream;
+
+        if (currentCall) {
+          const videoTrack = localStream.getVideoTracks()[0];
+          const sender = currentCall.peerConnection.getSenders()
+            .find(s => s.track.kind === videoTrack.kind);
+          sender.replaceTrack(videoTrack);
+        }
       } catch (error) {
         alert('Camera/microphone access required!');
         console.error('Media Error:', error);
@@ -132,6 +178,10 @@
 
     peer.on('open', (id) => {
       elements.myPeerId.textContent = id;
+      networkCheckInterval = setInterval(applyNetworkOptimization, 3000);
+      if (navigator.connection) {
+        navigator.connection.addEventListener('change', applyNetworkOptimization);
+      }
     });
 
     peer.on('error', (err) => {
@@ -196,6 +246,13 @@
 
     elements.peerIdInput.addEventListener('input', (e) => {
       e.target.value = e.target.value.slice(0, 4);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      clearInterval(networkCheckInterval);
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
     });
 
     initMedia();
