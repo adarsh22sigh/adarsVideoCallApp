@@ -1,292 +1,401 @@
- <!DOCTYPE html>
+ 
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mediasoup Video Call</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .call-buttons {
-      @apply rounded-full p-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Video Call App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .call-buttons {
+      @apply rounded-full p-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all;
+    }
+  </style>
 </head>
 <body class="bg-black text-white relative h-screen overflow-hidden">
-  <!-- Network Status Indicator -->
-  <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded-full bg-black/80 text-sm" id="networkStatus">
-    📶 Good Network
-  </div>
+  <!-- Network Status Indicator -->
+  <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded-full bg-black/80 text-sm" id="networkStatus">
+    📶 Good Network
+  </div>
 
-  <!-- Incoming Call Modal -->
-  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
-    <div class="text-center">
-      <h2 class="text-2xl mb-4">Incoming Call</h2>
-      <div class="flex gap-4 justify-center">
-        <button id="declineCall" class="call-buttons bg-red-500">✖</button>
-        <button id="acceptCall" class="call-buttons bg-green-500">✔</button>
-      </div>
-    </div>
-  </div>
+  <!-- Incoming Call Modal -->
+  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+    <div class="text-center">
+      <h2 class="text-2xl mb-4">Incoming Call</h2>
+      <div class="flex gap-4 justify-center">
+        <button id="declineCall" class="call-buttons bg-red-500">✖</button>
+        <button id="acceptCall" class="call-buttons bg-green-500">✔</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- Main Content -->
-  <div class="relative z-10 container mx-auto px-4 h-full">
-    <!-- Video Containers -->
-    <div class="h-full flex flex-col">
-      <!-- Remote Video -->
-      <div class="flex-1 relative rounded-2xl overflow-hidden bg-black">
-        <video id="remoteVideo" autoplay class="w-full h-full object-cover"></video>
-      </div>
-      
-      <!-- Local Video -->
-      <div class="fixed md:absolute bottom-4 right-4 w-20 h-28 md:w-32 md:h-48 rounded-xl overflow-hidden shadow-lg z-20">
-        <video id="localVideo" autoplay muted class="w-full h-full object-cover"></video>
-      </div>
+  <!-- Main Content -->
+  <div class="relative z-10 container mx-auto px-4 h-full">
+    <!-- Video Containers -->
+    <div class="h-full flex flex-col">
+      <!-- Remote Video -->
+      <div class="flex-1 relative rounded-2xl overflow-hidden bg-black">
+        <video id="remoteVideo" autoplay class="w-full h-full object-cover"></video>
+      </div>
+      
+      <!-- Local Video -->
+      <div class="fixed md:absolute bottom-4 right-4 w-20 h-28 md:w-32 md:h-48 rounded-xl overflow-hidden shadow-lg z-20">
+        <video id="localVideo" autoplay muted class="w-full h-full object-cover"></video>
+      </div>
 
-      <!-- Call Controls -->
-      <div class="fixed md:absolute bottom-20 md:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 md:gap-4 z-20">
-        <button id="endCall" class="call-buttons hidden">
-          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85c-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
-          </svg>
-        </button>
-        <button id="toggleVideo" class="call-buttons">
-          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15 8v8H5V8h10zm1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/>
-          </svg>
-        </button>
-        <button id="toggleMute" class="call-buttons">
-          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-          </svg>
-        </button>
-      </div>
+      <!-- Call Controls -->
+      <div class="fixed md:absolute bottom-20 md:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 md:gap-4 z-20">
+        <button id="endCall" class="call-buttons hidden">
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85c-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+          </svg>
+        </button>
+        <button id="toggleVideo" class="call-buttons">
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15 8v8H5V8h10zm1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/>
+          </svg>
+        </button>
+        <button id="toggleMute" class="call-buttons">
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
+        </button>
+      </div>
 
-      <!-- Call Interface -->
-      <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
-        <h1 class="text-xl font-bold">Video Call</h1>
-        <p class="text-sm">Room ID: <span id="roomId" class="font-mono text-blue-400"></span></p>
-      </div>
+      <!-- Call Interface -->
+      <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
+        <h1 class="text-xl font-bold">Video Call</h1>
+        <p class="text-sm">Your ID: <span id="myPeerId" class="font-mono text-blue-400"></span></p>
+      </div>
 
-      <!-- Dialer -->
-      <div class="fixed md:absolute bottom-36 md:bottom-28 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
-        <input
-          type="text"
-          id="roomInput"
-          placeholder="Enter Room ID"
-          class="w-32 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm focus:outline-none"
-        />
-        <button
-          id="joinButton"
-          class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600"
-        >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-5 5 5 5"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
+      <!-- Dialer -->
+      <div class="fixed md:absolute bottom-36 md:bottom-28 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+        <input
+          type="number"
+          id="peerIdInput"
+          placeholder="Enter ID"
+          class="w-32 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm focus:outline-none"
+          min="1000"
+          max="9999"
+        />
+        <button
+          id="callButton"
+          class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-5 5 5 5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/mediasoup-client@3.6.40/lib/mediasoup-client.min.js"></script>
-  <script>
-    let device;
-    let sendTransport;
-    let recvTransport;
-    let localStream;
-    let socket;
-    let roomId;
-    let producerVideo;
-    let producerAudio;
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
+    let currentCall = null;
+    let localStream = null;
+    let isVideoEnabled = true;
+    let isAudioEnabled = true;
+    let currentResolution = '1280x720';
+    let networkCheckInterval;
 
-    const elements = {
-      localVideo: document.getElementById('localVideo'),
-      remoteVideo: document.getElementById('remoteVideo'),
-      roomId: document.getElementById('roomId'),
-      roomInput: document.getElementById('roomInput'),
-      joinButton: document.getElementById('joinButton'),
-      endCall: document.getElementById('endCall'),
-      toggleVideo: document.getElementById('toggleVideo'),
-      toggleMute: document.getElementById('toggleMute'),
-      networkStatus: document.getElementById('networkStatus')
-    };
+    const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
 
-    const initSocket = () => {
-      socket = new WebSocket('wss://your-server.com/mediasoup');
-      
-      socket.onopen = async () => {
-        console.log('WebSocket connected');
-        await initializeDevice();
-      };
+    const peer = new Peer(generateNumericId(), {
+      debug: 0,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    { urls: "stun:stun.ekiga.net" },
+    { urls: "stun:stun.ideasip.com" },
+    { urls: "stun:stun.rixtelecom.se" },
+    { urls: "stun:stun.schlund.de" },
+    { urls: "stun:stun.stunprotocol.org:3478" },
+    { urls: "stun:stun.voiparound.com" },
+    { urls: "stun:stun.voipbuster.com" },
+    { urls: "stun:stun.voipstunt.com" },
+    { urls: "stun:stun.voxgratia.org" },
+    { urls: "stun:23.21.150.121:3478" },
+    { urls: "stun:iphone-stun.strato-iphone.de:3478" },
+    { urls: "stun:numb.viagenie.ca:3478" },
+    { urls: "stun:s1.taraba.net:3478" },
+    { urls: "stun:s2.taraba.net:3478" },
+    { urls: "stun:stun.12connect.com:3478" },
+    { urls: "stun:stun.12voip.com:3478" },
+    { urls: "stun:stun.1und1.de:3478" },
+    { urls: "stun:stun.2talk.co.nz:3478" },
+    { urls: "stun:stun.2talk.com:3478" },
+    { urls: "stun:stun.3clogic.com:3478" },
+    { urls: "stun:stun.3cx.com:3478" },
+    { urls: "stun:stun.a-mm.tv:3478" },
+    { urls: "stun:stun.aa.net.uk:3478" },
+    { urls: "stun:stun.acrobits.cz:3478" },
+    { urls: "stun:stun.actionvoip.com:3478" },
+    { urls: "stun:stun.advfn.com:3478" },
+    { urls: "stun:stun.aeta-audio.com:3478" },
+    { urls: "stun:stun.aeta.com:3478" },
+    { urls: "stun:stun.alltel.com.au:3478" },
+    { urls: "stun:stun.altar.com.pl:3478" },
+    { urls: "stun:stun.annatel.net:3478" },
+    { urls: "stun:stun.antisip.com:3478" },
+    { urls: "stun:stun.arbuz.ru:3478" },
+    { urls: "stun:stun.avigora.com:3478" },
+    { urls: "stun:stun.avigora.fr:3478" },
+    { urls: "stun:stun.awa-shima.com:3478" },
+    { urls: "stun:stun.awt.be:3478" },
+    { urls: "stun:stun.b2b2c.ca:3478" },
+    { urls: "stun:stun.bahnhof.net:3478" },
+    { urls: "stun:stun.barracuda.com:3478" },
+    { urls: "stun:stun.bluesip.net:3478" },
+    { urls: "stun:stun.bmwgs.cz:3478" },
+    { urls: "stun:stun.botonakis.com:3478" },
+    { urls: "stun:stun.budgetphone.nl:3478" },
+    { urls: "stun:stun.budgetsip.com:3478" },
+    { urls: "stun:stun.cablenet-as.net:3478" },
+    { urls: "stun:stun.callromania.ro:3478" },
+    { urls: "stun:stun.callwithus.com:3478" },
+    { urls: "stun:stun.cbsys.net:3478" },
+    { urls: "stun:stun.chathelp.ru:3478" },
+    { urls: "stun:stun.cheapvoip.com:3478" },
+    { urls: "stun:stun.ciktel.com:3478" },
+    { urls: "stun:stun.cloopen.com:3478" },
+    { urls: "stun:stun.colouredlines.com.au:3478" },
+    { urls: "stun:stun.comfi.com:3478" },
+    { urls: "stun:stun.commpeak.com:3478" },
+    { urls: "stun:stun.comtube.com:3478" },
+    { urls: "stun:stun.comtube.ru:3478" },
+    { urls: "stun:stun.cope.es:3478" },
+    { urls: "stun:stun.counterpath.com:3478" },
+    { urls: "stun:stun.counterpath.net:3478" },
+    { urls: "stun:stun.cryptonit.net:3478" },
+    { urls: "stun:stun.darioflaccovio.it:3478" },
+    { urls: "stun:stun.datamanagement.it:3478" },
+    { urls: "stun:stun.dcalling.de:3478" },
+    { urls: "stun:stun.decanet.fr:3478" },
+    { urls: "stun:stun.demos.ru:3478" },
+    { urls: "stun:stun.develz.org:3478" },
+    { urls: "stun:stun.dingaling.ca:3478" },
+    { urls: "stun:stun.doublerobotics.com:3478" },
+    { urls: "stun:stun.drogon.net:3478" },
+    { urls: "stun:stun.duocom.es:3478" },
+    { urls: "stun:stun.dus.net:3478" },
+    { urls: "stun:stun.e-fon.ch:3478" },
+    { urls: "stun:stun.easybell.de:3478" },
+    { urls: "stun:stun.easycall.pl:3478" },
+    { urls: "stun:stun.easyvoip.com:3478" },
+    { urls: "stun:stun.efficace-factory.com:3478" },
+    { urls: "stun:stun.einsundeins.com:3478" },
+    { urls: "stun:stun.einsundeins.de:3478" },
+    { urls: "stun:stun.ekiga.net:3478" },
+    { urls: "stun:stun.epygi.com:3478" },
+    { urls: "stun:stun.etoilediese.fr:3478" },
+    { urls: "stun:stun.eyeball.com:3478" },
+    { urls: "stun:stun.faktortel.com.au:3478" },
+    { urls: "stun:stun.freecall.com:3478" },
+    { urls: "stun:stun.freeswitch.org:3478" },
+          { urls: 'turn:global.relay.metered.ca:80', username: 'c392afe8f98a6d1c30422cb7', credential: 'vxx/RLgoJ/AzqqGS' },
+          {  url: 'turn:192.158.29.39:3478?transport=udp',
+    credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+    username: '28224511:1379330808'},
+          {
+    url: 'turn:numb.viagenie.ca',
+    credential: 'muazkh',
+    username: 'webrtc@live.com'
+},
+{
+    url: 'turn:192.158.29.39:3478?transport=udp',
+    credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+    username: '28224511:1379330808'
+},
+{
+    url: 'turn:192.158.29.39:3478?transport=tcp',
+    credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+    username: '28224511:1379330808'
+},
+{
+    url: 'turn:turn.bistri.com:80',
+    credential: 'homeo',
+    username: 'homeo'
+ },
+ {
+    url: 'turn:turn.anyfirewall.com:443?transport=tcp',
+    credential: 'webrtc',
+    username: 'webrtc'
+ }
+        ],
+        iceTransportPolicy: 'relay'
+      }
+    });
 
-      socket.onmessage = async (event) => {
-        const message = JSON.parse(event.data);
-        switch (message.type) {
-          case 'routerCapabilities':
-            await handleRouterCapabilities(message.data);
-            break;
-          case 'newProducer':
-            await handleNewProducer(message.data);
-            break;
-          case 'transportCreated':
-            await handleTransportCreated(message.data);
-            break;
-          case 'producerCreated':
-            await handleProducerCreated(message.data);
-            break;
-        }
-      };
-    };
+    const elements = {
+      localVideo: document.getElementById('localVideo'),
+      remoteVideo: document.getElementById('remoteVideo'),
+      myPeerId: document.getElementById('myPeerId'),
+      peerIdInput: document.getElementById('peerIdInput'),
+      callButton: document.getElementById('callButton'),
+      incomingCallModal: document.getElementById('incomingCallModal'),
+      acceptCall: document.getElementById('acceptCall'),
+      declineCall: document.getElementById('declineCall'),
+      endCall: document.getElementById('endCall'),
+      toggleVideo: document.getElementById('toggleVideo'),
+      toggleMute: document.getElementById('toggleMute'),
+      networkStatus: document.getElementById('networkStatus')
+    };
 
-    const initializeDevice = async () => {
-      try {
-        device = new mediasoupClient.Device();
-        const routerRtpCapabilities = await fetchRouterCapabilities();
-        await device.load({ routerRtpCapabilities });
-        console.log('Mediasoup device initialized');
-      } catch (error) {
-        console.error('Device initialization failed:', error);
-      }
-    };
+    const getVideoConstraints = (resolution) => {
+      const resolutions = {
+        '1280x720': { width: { ideal: 1280 }, height: { ideal: 720 } },
+        '640x360': { width: { ideal: 640 }, height: { ideal: 360 } }
+      };
+      return resolutions[resolution] || resolutions['640x360'];
+    };
 
-    const fetchRouterCapabilities = async () => {
-      const response = await sendRequest('getRouterCapabilities');
-      return response.rtpCapabilities;
-    };
+    const applyNetworkOptimization = async () => {
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const isSlowNetwork = connection ? (connection.effectiveType === 'slow-2g' || connection.downlink < 1.5) : false;
 
-    const sendRequest = (type, data = {}) => {
-      return new Promise((resolve) => {
-        const requestId = Math.random().toString(36).substr(2, 9);
-        const handler = (event) => {
-          const message = JSON.parse(event.data);
-          if (message.requestId === requestId) {
-            socket.removeEventListener('message', handler);
-            resolve(message.data);
-          }
-        };
-        socket.addEventListener('message', handler);
-        socket.send(JSON.stringify({ type, requestId, data }));
-      });
-    };
+      if (isSlowNetwork && currentResolution !== '640x360') {
+        elements.networkStatus.textContent = '📶 Low Network (SD)';
+        elements.networkStatus.classList.add('text-yellow-500');
+        currentResolution = '640x360';
+        await initMedia(getVideoConstraints(currentResolution));
+      } else if (!isSlowNetwork && currentResolution !== '1280x720') {
+        elements.networkStatus.textContent = '📶 Good Network (HD)';
+        elements.networkStatus.classList.remove('text-yellow-500');
+        currentResolution = '1280x720';
+        await initMedia(getVideoConstraints(currentResolution));
+      }
+    };
 
-    const joinRoom = async () => {
-      roomId = elements.roomInput.value || 'default-room';
-      elements.roomId.textContent = roomId;
-      
-      await createTransports();
-      await getMediaStream();
-      await produceMedia();
-      
-      elements.endCall.classList.remove('hidden');
-    };
+    const initMedia = async (constraints = getVideoConstraints('1280x720')) => {
+      try {
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+        }
 
-    const createTransports = async () => {
-      // Create send transport
-      const sendTransportInfo = await sendRequest('createTransport', {
-        roomId,
-        direction: 'send'
-      });
-      
-      sendTransport = device.createSendTransport({
-        id: sendTransportInfo.id,
-        iceParameters: sendTransportInfo.iceParameters,
-        iceCandidates: sendTransportInfo.iceCandidates,
-        dtlsParameters: sendTransportInfo.dtlsParameters,
-      });
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: constraints,
+          audio: { noiseSuppression: true, echoCancellation: true }
+        });
 
-      sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-        sendRequest('connectTransport', {
-          transportId: sendTransport.id,
-          dtlsParameters
-        }).then(callback).catch(errback);
-      });
+        elements.localVideo.srcObject = localStream;
 
-      sendTransport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
-        try {
-          const { id } = await sendRequest('createProducer', {
-            transportId: sendTransport.id,
-            kind,
-            rtpParameters,
-            roomId
-          });
-          callback({ id });
-        } catch (error) {
-          errback(error);
-        }
-      });
+        if (currentCall) {
+          const videoTrack = localStream.getVideoTracks()[0];
+          const sender = currentCall.peerConnection.getSenders()
+            .find(s => s.track.kind === videoTrack.kind);
+          sender.replaceTrack(videoTrack);
+        }
+        return true;
+      } catch (error) {
+        alert('Camera/microphone access required!');
+        console.error('Media Error:', error);
+        return false;
+      }
+    };
 
-      // Create receive transport
-      const recvTransportInfo = await sendRequest('createTransport', {
-        roomId,
-        direction: 'recv'
-      });
+    peer.on('open', (id) => {
+      elements.myPeerId.textContent = id;
+      networkCheckInterval = setInterval(applyNetworkOptimization, 3000);
+      if (navigator.connection) {
+        navigator.connection.addEventListener('change', applyNetworkOptimization);
+      }
+    });
 
-      recvTransport = device.createRecvTransport({
-        id: recvTransportInfo.id,
-        iceParameters: recvTransportInfo.iceParameters,
-        iceCandidates: recvTransportInfo.iceCandidates,
-        dtlsParameters: recvTransportInfo.dtlsParameters,
-      });
+    peer.on('error', (err) => {
+  console.error('PeerJS Error:', err);
+  alert(`Error: ${err.type} - ${err.message}`);
+});
 
-      recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-        sendRequest('connectTransport', {
-          transportId: recvTransport.id,
-          dtlsParameters
-        }).then(callback).catch(errback);
-      });
-    };
 
-    const getMediaStream = async () => {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720 },
-          audio: { noiseSuppression: true, echoCancellation: true }
-        });
-        elements.localVideo.srcObject = localStream;
-      } catch (error) {
-        console.error('Media access error:', error);
-      }
-    };
+    peer.on('call', async (call) => {
+      elements.incomingCallModal.classList.remove('hidden');
+      
+      elements.declineCall.onclick = () => {
+        call.close();
+        elements.incomingCallModal.classList.add('hidden');
+      };
 
-    const produceMedia = async () => {
-      const videoTrack = localStream.getVideoTracks()[0];
-      const audioTrack = localStream.getAudioTracks()[0];
+      elements.acceptCall.onclick = async () => {
+        elements.incomingCallModal.classList.add('hidden');
+        
+        if (!localStream) {
+          const success = await initMedia();
+          if (!success) {
+            alert('Please allow camera/microphone access to accept call!');
+            call.close();
+            return;
+          }
+        }
 
-      producerVideo = await sendTransport.produce({
-        track: videoTrack,
-        encodings: [{ scalabilityMode: 'S3T3' }],
-        codecOptions: { videoGoogleStartBitrate: 1000 }
-      });
+        elements.endCall.classList.remove('hidden');
+        call.answer(localStream);
+        currentCall = call;
+        
+        call.on('stream', (remoteStream) => {
+          elements.remoteVideo.srcObject = remoteStream;
+        });
+      };
+    });
 
-      producerAudio = await sendTransport.produce({
-        track: audioTrack,
-        codecOptions: { opusStereo: true, opusDtx: true }
-      });
-    };
+    elements.callButton.addEventListener('click', async () => {
+      const partnerId = elements.peerIdInput.value.trim();
+      if (partnerId.length !== 4) return;
 
-    elements.joinButton.addEventListener('click', joinRoom);
+      if (!localStream) {
+        const success = await initMedia();
+        if (!success) {
+          alert('Please allow camera/microphone access to make call!');
+          return;
+        }
+      }
 
-    elements.endCall.addEventListener('click', () => {
-      sendTransport.close();
-      recvTransport.close();
-      localStream.getTracks().forEach(track => track.stop());
-      elements.remoteVideo.srcObject = null;
-      elements.endCall.classList.add('hidden');
-    });
+      const call = peer.call(partnerId, localStream);
+      elements.endCall.classList.remove('hidden');
+      
+      call.on('stream', (remoteStream) => {
+        elements.remoteVideo.srcObject = remoteStream;
+      });
+      
+      currentCall = call;
+    });
 
-    elements.toggleVideo.addEventListener('click', () => {
-      const videoTrack = localStream.getVideoTracks()[0];
-      videoTrack.enabled = !videoTrack.enabled;
-      elements.toggleVideo.classList.toggle('bg-red-500', !videoTrack.enabled);
-    });
+    elements.endCall.addEventListener('click', () => {
+      if (currentCall) {
+        currentCall.close();
+        elements.remoteVideo.srcObject = null;
+        elements.endCall.classList.add('hidden');
+      }
+    });
 
-    elements.toggleMute.addEventListener('click', () => {
-      const audioTrack = localStream.getAudioTracks()[0];
-      audioTrack.enabled = !audioTrack.enabled;
-      elements.toggleMute.classList.toggle('bg-red-500', !audioTrack.enabled);
-    });
+    elements.toggleVideo.addEventListener('click', () => {
+      isVideoEnabled = !isVideoEnabled;
+      localStream.getVideoTracks()[0].enabled = isVideoEnabled;
+      elements.toggleVideo.classList.toggle('bg-red-500', !isVideoEnabled);
+    });
 
-    // Initialize connection
-    initSocket();
-  </script>
+    elements.toggleMute.addEventListener('click', () => {
+      isAudioEnabled = !isAudioEnabled;
+      localStream.getAudioTracks()[0].enabled = isAudioEnabled;
+      elements.toggleMute.classList.toggle('bg-red-500', !isAudioEnabled);
+    });
+
+    elements.peerIdInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.slice(0, 4);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      clearInterval(networkCheckInterval);
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    });
+
+    initMedia();
+  </script>
 </body>
 </html>
