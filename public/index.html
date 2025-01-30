@@ -1,320 +1,280 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp-like Video Call</title>
-  
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
-  <!-- React Dependencies -->
-  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  
-  <!-- PeerJS -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  
-  <!-- React Bootstrap -->
-  <script src="https://unpkg.com/react-bootstrap@2.7.2/dist/react-bootstrap.min.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Video Call App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .video-container {
-      position: relative;
-      background: #000;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .local-video {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 120px;
-      height: 160px;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.3);
-      z-index: 2;
-    }
-
-    .remote-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .controls {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 15px;
-      z-index: 3;
-    }
-
-    .call-button {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-
-    .call-info {
-      position: absolute;
-      top: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      color: white;
-      z-index: 2;
-    }
-
-    .dialer-box {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 2rem;
-      max-width: 400px;
-      width: 90%;
-    }
-
-    .peer-id-display {
-      font-size: 1.5rem;
-      letter-spacing: 3px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 10px 20px;
-      border-radius: 10px;
-      margin: 1rem 0;
+    .call-buttons {
+      @apply rounded-full p-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all;
     }
   </style>
 </head>
-<body>
-  <div id="root"></div>
+<body class="bg-black text-white relative h-screen overflow-hidden">
+  <!-- Network Status Indicator -->
+  <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded-full bg-black/80 text-sm" id="networkStatus">
+    📶 Good Network
+  </div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-    const { Modal, Button, Badge, Container, Row, Col } = ReactBootstrap;
+  <!-- Incoming Call Modal -->
+  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+    <div class="text-center">
+      <h2 class="text-2xl mb-4">Incoming Call</h2>
+      <div class="flex gap-4 justify-center">
+        <button id="declineCall" class="call-buttons bg-red-500">✖</button>
+        <button id="acceptCall" class="call-buttons bg-green-500">✔</button>
+      </div>
+    </div>
+  </div>
 
-    function App() {
-      const [localStream, setLocalStream] = useState(null);
-      const [remoteStream, setRemoteStream] = useState(null);
-      const [peerId, setPeerId] = useState('');
-      const [callStatus, setCallStatus] = useState('disconnected');
-      const [incomingCall, setIncomingCall] = useState(null);
-      const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-      const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-      const [callDuration, setCallDuration] = useState(0);
-      const [remoteIdInput, setRemoteIdInput] = useState('');
+  <!-- Main Content -->
+  <div class="relative z-10 container mx-auto px-4 h-full">
+    <!-- Video Containers -->
+    <div class="h-full flex flex-col">
+      <!-- Remote Video -->
+      <div class="flex-1 relative rounded-2xl overflow-hidden bg-black">
+        <video id="remoteVideo" autoplay class="w-full h-full object-cover"></video>
+      </div>
       
-      const localVideoRef = useRef(null);
-      const remoteVideoRef = useRef(null);
-      const peerInstance = useRef(null);
-      const callTimer = useRef(null);
+      <!-- Local Video -->
+      <div class="fixed md:absolute bottom-4 right-4 w-20 h-28 md:w-32 md:h-48 rounded-xl overflow-hidden shadow-lg z-20">
+        <video id="localVideo" autoplay muted class="w-full h-full object-cover"></video>
+      </div>
 
-      useEffect(() => {
-        const generatePeerId = () => Math.floor(1000 + Math.random() * 9000).toString();
+      <!-- Call Controls -->
+      <div class="fixed md:absolute bottom-20 md:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 md:gap-4 z-20">
+        <button id="endCall" class="call-buttons hidden">
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85c-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+          </svg>
+        </button>
+        <button id="toggleVideo" class="call-buttons">
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15 8v8H5V8h10zm1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/>
+          </svg>
+        </button>
+        <button id="toggleMute" class="call-buttons">
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
+        </button>
+      </div>
 
-        const initializePeer = async () => {
-          const newPeerId = generatePeerId();
-          const peer = new Peer(newPeerId, {
-            debug: 3,
-            config: {
-              iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                { urls: "turn:relay1.expressturn.com:3478", username: 'efKLQI74W7P77IQDR9', credential: '7x8L7fKSlBh2Af72' }
-              ]
-            }
-          });
+      <!-- Call Interface -->
+      <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
+        <h1 class="text-xl font-bold">Video Call</h1>
+        <p class="text-sm">Your ID: <span id="myPeerId" class="font-mono text-blue-400"></span></p>
+      </div>
 
-          peer.on('open', () => {
-            setPeerId(newPeerId);
-          });
+      <!-- Dialer -->
+      <div class="fixed md:absolute bottom-36 md:bottom-28 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+        <input
+          type="number"
+          id="peerIdInput"
+          placeholder="Enter ID"
+          class="w-32 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm focus:outline-none"
+          min="1000"
+          max="9999"
+        />
+        <button
+          id="callButton"
+          class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-5 5 5 5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
-          peer.on('call', (call) => {
-            setIncomingCall(call);
-            setCallStatus('ringing');
-          });
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
+    let currentCall = null;
+    let localStream = null;
+    let isVideoEnabled = true;
+    let isAudioEnabled = true;
+    let currentResolution = '1280x720';
+    let networkCheckInterval;
 
-          peer.on('error', (err) => {
-            console.error('PeerJS Error:', err);
-          });
+    const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
 
-          peerInstance.current = peer;
-        };
+    const peer = new Peer(generateNumericId(), {
+      debug: 0,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'turn:relay1.expressturn.com:3478', username: 'efKLQI74W7P77IQDR9', credential: '7x8L7fKSlBh2Af72' }
+        ],
+        iceTransportPolicy: 'relay'
+      }
+    });
 
-        initializePeer();
-        initMedia();
+    const elements = {
+      localVideo: document.getElementById('localVideo'),
+      remoteVideo: document.getElementById('remoteVideo'),
+      myPeerId: document.getElementById('myPeerId'),
+      peerIdInput: document.getElementById('peerIdInput'),
+      callButton: document.getElementById('callButton'),
+      incomingCallModal: document.getElementById('incomingCallModal'),
+      acceptCall: document.getElementById('acceptCall'),
+      declineCall: document.getElementById('declineCall'),
+      endCall: document.getElementById('endCall'),
+      toggleVideo: document.getElementById('toggleVideo'),
+      toggleMute: document.getElementById('toggleMute'),
+      networkStatus: document.getElementById('networkStatus')
+    };
 
-        return () => {
-          if (peerInstance.current) peerInstance.current.destroy();
-          if (localStream) localStream.getTracks().forEach(track => track.stop());
-          clearInterval(callTimer.current);
-        };
-      }, []);
+    const getVideoConstraints = (resolution) => {
+      const resolutions = {
+        '1280x720': { width: { ideal: 1280 }, height: { ideal: 720 } },
+        '640x360': { width: { ideal: 640 }, height: { ideal: 360 } }
+      };
+      return resolutions[resolution] || resolutions['640x360'];
+    };
 
-      const initMedia = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: { noiseSuppression: true, echoCancellation: true }
-          });
-          setLocalStream(stream);
-          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        } catch (error) {
-          console.error('Error accessing media devices:', error);
+    const applyNetworkOptimization = async () => {
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const isSlowNetwork = connection ? (connection.effectiveType === 'slow-2g' || connection.downlink < 1.5) : false;
+
+      if (isSlowNetwork && currentResolution !== '640x360') {
+        elements.networkStatus.textContent = '📶 Low Network (SD)';
+        elements.networkStatus.classList.add('text-yellow-500');
+        currentResolution = '640x360';
+        await initMedia(getVideoConstraints(currentResolution));
+      } else if (!isSlowNetwork && currentResolution !== '1280x720') {
+        elements.networkStatus.textContent = '📶 Good Network (HD)';
+        elements.networkStatus.classList.remove('text-yellow-500');
+        currentResolution = '1280x720';
+        await initMedia(getVideoConstraints(currentResolution));
+      }
+    };
+
+    const initMedia = async (constraints = getVideoConstraints('1280x720')) => {
+      try {
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
         }
-      };
 
-      const startCall = () => {
-        if (!remoteIdInput || remoteIdInput.length !== 4) return;
-        
-        const call = peerInstance.current.call(remoteIdInput, localStream);
-        call.on('stream', (remoteStream) => {
-          setRemoteStream(remoteStream);
-          setCallStatus('connected');
-          startCallTimer();
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: constraints,
+          audio: { noiseSuppression: true, echoCancellation: true }
         });
-        setIncomingCall(null);
-      };
 
-      const answerCall = () => {
-        incomingCall.answer(localStream);
-        incomingCall.on('stream', (remoteStream) => {
-          setRemoteStream(remoteStream);
-          setCallStatus('connected');
-          startCallTimer();
-        });
-        setIncomingCall(null);
-      };
+        elements.localVideo.srcObject = localStream;
 
-      const endCall = () => {
-        if (incomingCall) incomingCall.close();
-        setCallStatus('disconnected');
-        setRemoteStream(null);
-        clearInterval(callTimer.current);
-        setCallDuration(0);
-        setRemoteIdInput('');
-      };
-
-      const toggleMedia = (type) => {
-        if (type === 'video') {
+        if (currentCall) {
           const videoTrack = localStream.getVideoTracks()[0];
-          videoTrack.enabled = !videoTrack.enabled;
-          setIsVideoEnabled(videoTrack.enabled);
-        } else {
-          const audioTrack = localStream.getAudioTracks()[0];
-          audioTrack.enabled = !audioTrack.enabled;
-          setIsAudioEnabled(audioTrack.enabled);
+          const sender = currentCall.peerConnection.getSenders()
+            .find(s => s.track.kind === videoTrack.kind);
+          sender.replaceTrack(videoTrack);
         }
+        return true;
+      } catch (error) {
+        alert('Camera/microphone access required!');
+        console.error('Media Error:', error);
+        return false;
+      }
+    };
+
+    peer.on('open', (id) => {
+      elements.myPeerId.textContent = id;
+      networkCheckInterval = setInterval(applyNetworkOptimization, 3000);
+      if (navigator.connection) {
+        navigator.connection.addEventListener('change', applyNetworkOptimization);
+      }
+    });
+
+    peer.on('error', (err) => {
+      console.error('PeerJS Error:', err);
+      alert(`Error: ${err.type} - ${err.message}`);
+    });
+
+    peer.on('call', async (call) => {
+      elements.incomingCallModal.classList.remove('hidden');
+      
+      elements.declineCall.onclick = () => {
+        call.close();
+        elements.incomingCallModal.classList.add('hidden');
       };
 
-      const startCallTimer = () => {
-        callTimer.current = setInterval(() => {
-          setCallDuration(prev => prev + 1);
-        }, 1000);
+      elements.acceptCall.onclick = async () => {
+        elements.incomingCallModal.classList.add('hidden');
+        
+        if (!localStream) {
+          const success = await initMedia();
+          if (!success) {
+            alert('Please allow camera/microphone access to accept call!');
+            call.close();
+            return;
+          }
+        }
+
+        elements.endCall.classList.remove('hidden');
+        call.answer(localStream);
+        currentCall = call;
+        
+        call.on('stream', (remoteStream) => {
+          elements.remoteVideo.srcObject = remoteStream;
+        });
       };
+    });
 
-      const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-      };
+    elements.callButton.addEventListener('click', async () => {
+      const partnerId = elements.peerIdInput.value.trim();
+      if (partnerId.length !== 4) return;
 
-      return (
-        <Container fluid className="video-container">
-          {remoteStream ? (
-            <video ref={remoteVideoRef} autoPlay playsInline className="remote-video" />
-          ) : (
-            <div className="call-info">
-              <h2 className="mb-3">Your ID: {peerId}</h2>
-              {callStatus === 'connected' && <h3>{formatTime(callDuration)}</h3>}
-            </div>
-          )}
+      if (!localStream) {
+        const success = await initMedia();
+        if (!success) {
+          alert('Please allow camera/microphone access to make call!');
+          return;
+        }
+      }
 
-          {localStream && (
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="local-video"
-              style={{ opacity: isVideoEnabled ? 1 : 0.5 }}
-            />
-          )}
+      const call = peer.call(partnerId, localStream);
+      elements.endCall.classList.remove('hidden');
+      
+      call.on('stream', (remoteStream) => {
+        elements.remoteVideo.srcObject = remoteStream;
+      });
+      
+      currentCall = call;
+    });
 
-          {callStatus === 'connected' ? (
-            <div className="controls">
-              <Button
-                variant={isVideoEnabled ? 'light' : 'secondary'}
-                onClick={() => toggleMedia('video')}
-                className="call-button"
-              >
-                {isVideoEnabled ? '📷' : '📷❌'}
-              </Button>
-              <Button
-                variant="danger"
-                onClick={endCall}
-                className="call-button"
-              >
-                📞
-              </Button>
-              <Button
-                variant={isAudioEnabled ? 'light' : 'secondary'}
-                onClick={() => toggleMedia('audio')}
-                className="call-button"
-              >
-                {isAudioEnabled ? '🎤' : '🔇'}
-              </Button>
-            </div>
-          ) : (
-            <div className="position-absolute top-50 start-50 translate-middle">
-              <div className="dialer-box text-center">
-                <h3 className="text-white mb-4">Make a Call</h3>
-                <div className="peer-id-display d-inline-block">{peerId}</div>
-                <input
-                  type="number"
-                  placeholder="Enter 4-digit ID"
-                  className="form-control mb-3 text-center"
-                  value={remoteIdInput}
-                  onChange={(e) => setRemoteIdInput(e.target.value.slice(0, 4))}
-                  maxLength="4"
-                />
-                <Button
-                  variant="success"
-                  onClick={startCall}
-                  className="w-100 py-2"
-                  disabled={remoteIdInput.length !== 4}
-                >
-                  Call
-                </Button>
-              </div>
-            </div>
-          )}
+    elements.endCall.addEventListener('click', () => {
+      if (currentCall) {
+        currentCall.close();
+        elements.remoteVideo.srcObject = null;
+        elements.endCall.classList.add('hidden');
+      }
+    });
 
-          <Modal show={callStatus === 'ringing'} centered className="text-center">
-            <Modal.Body className="bg-dark text-white">
-              <h3 className="mb-4">Incoming Call</h3>
-              <p>From: {incomingCall?.peer}</p>
-              <div className="d-flex justify-content-center gap-3">
-                <Button variant="danger" onClick={endCall} className="call-button">
-                  ✖
-                </Button>
-                <Button variant="success" onClick={answerCall} className="call-button">
-                  ✔
-                </Button>
-              </div>
-            </Modal.Body>
-          </Modal>
-        </Container>
-      );
-    }
+    elements.toggleVideo.addEventListener('click', () => {
+      isVideoEnabled = !isVideoEnabled;
+      localStream.getVideoTracks()[0].enabled = isVideoEnabled;
+      elements.toggleVideo.classList.toggle('bg-red-500', !isVideoEnabled);
+    });
 
-    ReactDOM.render(<App />, document.getElementById('root'));
+    elements.toggleMute.addEventListener('click', () => {
+      isAudioEnabled = !isAudioEnabled;
+      localStream.getAudioTracks()[0].enabled = isAudioEnabled;
+      elements.toggleMute.classList.toggle('bg-red-500', !isAudioEnabled);
+    });
+
+    elements.peerIdInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.slice(0, 4);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      clearInterval(networkCheckInterval);
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    });
+
+    initMedia();
   </script>
 </body>
 </html>
