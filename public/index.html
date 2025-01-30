@@ -1,4 +1,5 @@
  
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,313 +90,181 @@
       </div>
     </div>
   </div>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mediasoup-client@3.6.55/lib/mediasoup-client.min.js"></script>
+<script>
+  let device = null;
+  let localStream = null;
+  let currentCall = null;
+  let socket = null;
+  let producerTransport = null;
+  let consumerTransport = null;
+  let producers = new Map();
+  let consumers = new Map();
 
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script>
-    let currentCall = null;
-    let localStream = null;
-    let isVideoEnabled = true;
-    let isAudioEnabled = true;
-    let currentResolution = '1280x720';
-    let networkCheckInterval;
+  const elements = {
+    localVideo: document.getElementById('localVideo'),
+    remoteVideo: document.getElementById('remoteVideo'),
+    myPeerId: document.getElementById('myPeerId'),
+    peerIdInput: document.getElementById('peerIdInput'),
+    callButton: document.getElementById('callButton'),
+    incomingCallModal: document.getElementById('incomingCallModal'),
+    acceptCall: document.getElementById('acceptCall'),
+    declineCall: document.getElementById('declineCall'),
+    endCall: document.getElementById('endCall'),
+    toggleVideo: document.getElementById('toggleVideo'),
+    toggleMute: document.getElementById('toggleMute'),
+    networkStatus: document.getElementById('networkStatus')
+  };
 
-    const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
+  const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
+  const myPeerId = generateNumericId();
+  elements.myPeerId.textContent = myPeerId;
 
-    const peer = new Peer(generateNumericId(), {
-      debug: 0,
-      config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" },
-    { urls: "stun:stun.ekiga.net" },
-    { urls: "stun:stun.ideasip.com" },
-    { urls: "stun:stun.rixtelecom.se" },
-    { urls: "stun:stun.schlund.de" },
-    { urls: "stun:stun.stunprotocol.org:3478" },
-    { urls: "stun:stun.voiparound.com" },
-    { urls: "stun:stun.voipbuster.com" },
-    { urls: "stun:stun.voipstunt.com" },
-    { urls: "stun:stun.voxgratia.org" },
-    { urls: "stun:23.21.150.121:3478" },
-    { urls: "stun:iphone-stun.strato-iphone.de:3478" },
-    { urls: "stun:numb.viagenie.ca:3478" },
-    { urls: "stun:s1.taraba.net:3478" },
-    { urls: "stun:s2.taraba.net:3478" },
-    { urls: "stun:stun.12connect.com:3478" },
-    { urls: "stun:stun.12voip.com:3478" },
-    { urls: "stun:stun.1und1.de:3478" },
-    { urls: "stun:stun.2talk.co.nz:3478" },
-    { urls: "stun:stun.2talk.com:3478" },
-    { urls: "stun:stun.3clogic.com:3478" },
-    { urls: "stun:stun.3cx.com:3478" },
-    { urls: "stun:stun.a-mm.tv:3478" },
-    { urls: "stun:stun.aa.net.uk:3478" },
-    { urls: "stun:stun.acrobits.cz:3478" },
-    { urls: "stun:stun.actionvoip.com:3478" },
-    { urls: "stun:stun.advfn.com:3478" },
-    { urls: "stun:stun.aeta-audio.com:3478" },
-    { urls: "stun:stun.aeta.com:3478" },
-    { urls: "stun:stun.alltel.com.au:3478" },
-    { urls: "stun:stun.altar.com.pl:3478" },
-    { urls: "stun:stun.annatel.net:3478" },
-    { urls: "stun:stun.antisip.com:3478" },
-    { urls: "stun:stun.arbuz.ru:3478" },
-    { urls: "stun:stun.avigora.com:3478" },
-    { urls: "stun:stun.avigora.fr:3478" },
-    { urls: "stun:stun.awa-shima.com:3478" },
-    { urls: "stun:stun.awt.be:3478" },
-    { urls: "stun:stun.b2b2c.ca:3478" },
-    { urls: "stun:stun.bahnhof.net:3478" },
-    { urls: "stun:stun.barracuda.com:3478" },
-    { urls: "stun:stun.bluesip.net:3478" },
-    { urls: "stun:stun.bmwgs.cz:3478" },
-    { urls: "stun:stun.botonakis.com:3478" },
-    { urls: "stun:stun.budgetphone.nl:3478" },
-    { urls: "stun:stun.budgetsip.com:3478" },
-    { urls: "stun:stun.cablenet-as.net:3478" },
-    { urls: "stun:stun.callromania.ro:3478" },
-    { urls: "stun:stun.callwithus.com:3478" },
-    { urls: "stun:stun.cbsys.net:3478" },
-    { urls: "stun:stun.chathelp.ru:3478" },
-    { urls: "stun:stun.cheapvoip.com:3478" },
-    { urls: "stun:stun.ciktel.com:3478" },
-    { urls: "stun:stun.cloopen.com:3478" },
-    { urls: "stun:stun.colouredlines.com.au:3478" },
-    { urls: "stun:stun.comfi.com:3478" },
-    { urls: "stun:stun.commpeak.com:3478" },
-    { urls: "stun:stun.comtube.com:3478" },
-    { urls: "stun:stun.comtube.ru:3478" },
-    { urls: "stun:stun.cope.es:3478" },
-    { urls: "stun:stun.counterpath.com:3478" },
-    { urls: "stun:stun.counterpath.net:3478" },
-    { urls: "stun:stun.cryptonit.net:3478" },
-    { urls: "stun:stun.darioflaccovio.it:3478" },
-    { urls: "stun:stun.datamanagement.it:3478" },
-    { urls: "stun:stun.dcalling.de:3478" },
-    { urls: "stun:stun.decanet.fr:3478" },
-    { urls: "stun:stun.demos.ru:3478" },
-    { urls: "stun:stun.develz.org:3478" },
-    { urls: "stun:stun.dingaling.ca:3478" },
-    { urls: "stun:stun.doublerobotics.com:3478" },
-    { urls: "stun:stun.drogon.net:3478" },
-    { urls: "stun:stun.duocom.es:3478" },
-    { urls: "stun:stun.dus.net:3478" },
-    { urls: "stun:stun.e-fon.ch:3478" },
-    { urls: "stun:stun.easybell.de:3478" },
-    { urls: "stun:stun.easycall.pl:3478" },
-    { urls: "stun:stun.easyvoip.com:3478" },
-    { urls: "stun:stun.efficace-factory.com:3478" },
-    { urls: "stun:stun.einsundeins.com:3478" },
-    { urls: "stun:stun.einsundeins.de:3478" },
-    { urls: "stun:stun.ekiga.net:3478" },
-    { urls: "stun:stun.epygi.com:3478" },
-    { urls: "stun:stun.etoilediese.fr:3478" },
-    { urls: "stun:stun.eyeball.com:3478" },
-    { urls: "stun:stun.faktortel.com.au:3478" },
-    { urls: "stun:stun.freecall.com:3478" },
-    { urls: "stun:stun.freeswitch.org:3478" },
-          { urls: 'turn:global.relay.metered.ca:80', username: 'c392afe8f98a6d1c30422cb7', credential: 'vxx/RLgoJ/AzqqGS' },
-          {  url: 'turn:192.158.29.39:3478?transport=udp',
-    credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-    username: '28224511:1379330808'},
-          {
-    url: 'turn:numb.viagenie.ca',
-    credential: 'muazkh',
-    username: 'webrtc@live.com'
-},
-{
-    url: 'turn:192.158.29.39:3478?transport=udp',
-    credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-    username: '28224511:1379330808'
-},
-{
-    url: 'turn:192.158.29.39:3478?transport=tcp',
-    credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-    username: '28224511:1379330808'
-},
-{
-    url: 'turn:turn.bistri.com:80',
-    credential: 'homeo',
-    username: 'homeo'
- },
- {
-    url: 'turn:turn.anyfirewall.com:443?transport=tcp',
-    credential: 'webrtc',
-    username: 'webrtc'
- }
-        ],
-        iceTransportPolicy: 'relay'
-      }
-    });
-
-    const elements = {
-      localVideo: document.getElementById('localVideo'),
-      remoteVideo: document.getElementById('remoteVideo'),
-      myPeerId: document.getElementById('myPeerId'),
-      peerIdInput: document.getElementById('peerIdInput'),
-      callButton: document.getElementById('callButton'),
-      incomingCallModal: document.getElementById('incomingCallModal'),
-      acceptCall: document.getElementById('acceptCall'),
-      declineCall: document.getElementById('declineCall'),
-      endCall: document.getElementById('endCall'),
-      toggleVideo: document.getElementById('toggleVideo'),
-      toggleMute: document.getElementById('toggleMute'),
-      networkStatus: document.getElementById('networkStatus')
-    };
-
-    const getVideoConstraints = (resolution) => {
-      const resolutions = {
-        '1280x720': { width: { ideal: 1280 }, height: { ideal: 720 } },
-        '640x360': { width: { ideal: 640 }, height: { ideal: 360 } }
-      };
-      return resolutions[resolution] || resolutions['640x360'];
-    };
-
-    const applyNetworkOptimization = async () => {
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      const isSlowNetwork = connection ? (connection.effectiveType === 'slow-2g' || connection.downlink < 1.5) : false;
-
-      if (isSlowNetwork && currentResolution !== '640x360') {
-        elements.networkStatus.textContent = '📶 Low Network (SD)';
-        elements.networkStatus.classList.add('text-yellow-500');
-        currentResolution = '640x360';
-        await initMedia(getVideoConstraints(currentResolution));
-      } else if (!isSlowNetwork && currentResolution !== '1280x720') {
-        elements.networkStatus.textContent = '📶 Good Network (HD)';
-        elements.networkStatus.classList.remove('text-yellow-500');
-        currentResolution = '1280x720';
-        await initMedia(getVideoConstraints(currentResolution));
-      }
-    };
-
-    const initMedia = async (constraints = getVideoConstraints('1280x720')) => {
-      try {
-        if (localStream) {
-          localStream.getTracks().forEach(track => track.stop());
+  const initSocket = () => {
+    socket = io('http://localhost:3000');
+    
+    socket.on('connect', () => {
+      socket.emit('join', { roomId: 'default', peerId: myPeerId }, async (routerRtpCapabilities) => {
+        try {
+          device = new mediasoupClient.Device();
+          await device.load({ routerRtpCapabilities });
+        } catch (error) {
+          console.error('Failed to load device', error);
         }
-
-        localStream = await navigator.mediaDevices.getUserMedia({ 
-          video: constraints,
-          audio: { noiseSuppression: true, echoCancellation: true }
-        });
-
-        elements.localVideo.srcObject = localStream;
-
-        if (currentCall) {
-          const videoTrack = localStream.getVideoTracks()[0];
-          const sender = currentCall.peerConnection.getSenders()
-            .find(s => s.track.kind === videoTrack.kind);
-          sender.replaceTrack(videoTrack);
-        }
-        return true;
-      } catch (error) {
-        alert('Camera/microphone access required!');
-        console.error('Media Error:', error);
-        return false;
-      }
-    };
-
-    peer.on('open', (id) => {
-      elements.myPeerId.textContent = id;
-      networkCheckInterval = setInterval(applyNetworkOptimization, 3000);
-      if (navigator.connection) {
-        navigator.connection.addEventListener('change', applyNetworkOptimization);
-      }
-    });
-
-    peer.on('error', (err) => {
-  console.error('PeerJS Error:', err);
-  alert(`Error: ${err.type} - ${err.message}`);
-});
-
-
-    peer.on('call', async (call) => {
-      elements.incomingCallModal.classList.remove('hidden');
-      
-      elements.declineCall.onclick = () => {
-        call.close();
-        elements.incomingCallModal.classList.add('hidden');
-      };
-
-      elements.acceptCall.onclick = async () => {
-        elements.incomingCallModal.classList.add('hidden');
-        
-        if (!localStream) {
-          const success = await initMedia();
-          if (!success) {
-            alert('Please allow camera/microphone access to accept call!');
-            call.close();
-            return;
-          }
-        }
-
-        elements.endCall.classList.remove('hidden');
-        call.answer(localStream);
-        currentCall = call;
-        
-        call.on('stream', (remoteStream) => {
-          elements.remoteVideo.srcObject = remoteStream;
-        });
-      };
-    });
-
-    elements.callButton.addEventListener('click', async () => {
-      const partnerId = elements.peerIdInput.value.trim();
-      if (partnerId.length !== 4) return;
-
-      if (!localStream) {
-        const success = await initMedia();
-        if (!success) {
-          alert('Please allow camera/microphone access to make call!');
-          return;
-        }
-      }
-
-      const call = peer.call(partnerId, localStream);
-      elements.endCall.classList.remove('hidden');
-      
-      call.on('stream', (remoteStream) => {
-        elements.remoteVideo.srcObject = remoteStream;
       });
+    });
+
+    socket.on('newProducer', async ({ producerId, peerId }) => {
+      if (peerId === myPeerId) return;
       
-      currentCall = call;
-    });
-
-    elements.endCall.addEventListener('click', () => {
-      if (currentCall) {
-        currentCall.close();
-        elements.remoteVideo.srcObject = null;
-        elements.endCall.classList.add('hidden');
+      try {
+        await createConsumer(producerId);
+      } catch (error) {
+        console.error('Consume failed', error);
       }
     });
+  };
 
-    elements.toggleVideo.addEventListener('click', () => {
-      isVideoEnabled = !isVideoEnabled;
-      localStream.getVideoTracks()[0].enabled = isVideoEnabled;
-      elements.toggleVideo.classList.toggle('bg-red-500', !isVideoEnabled);
+  const createProducerTransport = async () => {
+    const transport = await createTransport('producer');
+    producerTransport = transport;
+  };
+
+  const createConsumerTransport = async () => {
+    const transport = await createTransport('consumer');
+    consumerTransport = transport;
+  };
+
+  const createTransport = async (type) => {
+    const transport = await new Promise((resolve, reject) => {
+      socket.emit('createTransport', { consuming: type === 'consumer' }, (transportParams) => {
+        const transport = type === 'producer' 
+          ? device.createSendTransport(transportParams)
+          : device.createRecvTransport(transportParams);
+
+        transport.on('connect', ({ dtlsParameters }, callback, errback) => {
+          socket.emit('connectTransport', {
+            transportId: transport.id,
+            dtlsParameters
+          }, () => callback(), errback);
+        });
+
+        transport.on('connectionstatechange', (state) => {
+          if (state === 'connected') {
+            console.log(`${type} transport connected`);
+          } else if (state === 'failed') {
+            transport.close();
+          }
+        });
+
+        resolve(transport);
+      });
     });
 
-    elements.toggleMute.addEventListener('click', () => {
-      isAudioEnabled = !isAudioEnabled;
-      localStream.getAudioTracks()[0].enabled = isAudioEnabled;
-      elements.toggleMute.classList.toggle('bg-red-500', !isAudioEnabled);
+    return transport;
+  };
+
+  const initLocalStream = async () => {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720 },
+        audio: true
+      });
+      elements.localVideo.srcObject = localStream;
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+    }
+  };
+
+  const startProducing = async () => {
+    if (!producerTransport) await createProducerTransport();
+    
+    for (const track of localStream.getTracks()) {
+      const params = { track };
+      const producer = await producerTransport.produce(params);
+      producers.set(producer.id, producer);
+      
+      producer.on('transportclose', () => {
+        producer.close();
+        producers.delete(producer.id);
+      });
+    }
+  };
+
+  const createConsumer = async (producerId) => {
+    if (!consumerTransport) await createConsumerTransport();
+    
+    const { consumer } = await socket.emitWithAck('consume', {
+      transportId: consumerTransport.id,
+      producerId
     });
 
-    elements.peerIdInput.addEventListener('input', (e) => {
-      e.target.value = e.target.value.slice(0, 4);
-    });
+    const stream = new MediaStream();
+    stream.addTrack(consumer.track);
+    elements.remoteVideo.srcObject = stream;
 
-    window.addEventListener('beforeunload', () => {
-      clearInterval(networkCheckInterval);
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-    });
+    consumers.set(consumer.id, consumer);
+    consumer.resume();
+  };
 
-    initMedia();
-  </script>
+  elements.callButton.addEventListener('click', async () => {
+    const partnerId = elements.peerIdInput.value.trim();
+    if (partnerId.length !== 4) return;
+    
+    elements.incomingCallModal.classList.add('hidden');
+    await initLocalStream();
+    await startProducing();
+    elements.endCall.classList.remove('hidden');
+  });
+
+  elements.endCall.addEventListener('click', () => {
+    if (producerTransport) {
+      producerTransport.close();
+      producerTransport = null;
+    }
+    if (consumerTransport) {
+      consumerTransport.close();
+      consumerTransport = null;
+    }
+    elements.remoteVideo.srcObject = null;
+    elements.endCall.classList.add('hidden');
+  });
+
+  elements.toggleVideo.addEventListener('click', () => {
+    const videoTrack = localStream.getVideoTracks()[0];
+    videoTrack.enabled = !videoTrack.enabled;
+    elements.toggleVideo.classList.toggle('bg-red-500', !videoTrack.enabled);
+  });
+
+  elements.toggleMute.addEventListener('click', () => {
+    const audioTrack = localStream.getAudioTracks()[0];
+    audioTrack.enabled = !audioTrack.enabled;
+    elements.toggleMute.classList.toggle('bg-red-500', !audioTrack.enabled);
+  });
+
+  initSocket();
+  initLocalStream();
+</script>
 </body>
 </html>
