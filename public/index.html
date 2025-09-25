@@ -7,79 +7,184 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     
     * {
       font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .glass-morphism {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
     .call-button {
-      @apply w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm;
+      @apply w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transform: scale(1);
+    }
+    
+    .call-button:hover {
+      transform: scale(1.05);
+      background: rgba(255, 255, 255, 0.25);
     }
     
     .call-button:active {
-      @apply scale-95;
+      transform: scale(0.95);
     }
     
-    .glass-effect {
-      backdrop-filter: blur(10px);
+    .call-button.active {
+      background: rgba(239, 68, 68, 0.8);
+      border-color: rgba(239, 68, 68, 0.9);
+    }
+    
+    .primary-button {
+      @apply bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transform transition-all duration-300;
+    }
+    
+    .primary-button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+    }
+    
+    .danger-button {
+      @apply bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700;
+    }
+    
+    .input-field {
+      @apply glass-morphism rounded-2xl px-6 py-4 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300;
       background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
-    .pulse-animation {
-      animation: pulse 2s infinite;
+    .input-field:focus {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.02);
     }
     
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.8; }
+    .pulse-ring {
+      animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+    }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 1; }
+      80%, 100% { transform: scale(1.8); opacity: 0; }
     }
     
     .slide-up {
-      animation: slideUp 0.3s ease-out;
+      animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     
     @keyframes slideUp {
-      from { transform: translateY(100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+      from { 
+        transform: translateY(100%) scale(0.9); 
+        opacity: 0; 
+      }
+      to { 
+        transform: translateY(0) scale(1); 
+        opacity: 1; 
+      }
     }
     
     .fade-in {
-      animation: fadeIn 0.5s ease-in;
+      animation: fadeIn 0.6s ease-out;
     }
     
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .bounce-in {
+      animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    @keyframes bounceIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
     }
     
     .video-container {
       position: relative;
       overflow: hidden;
-      border-radius: 0;
+      border-radius: 0px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     }
     
     @media (min-width: 768px) {
       .video-container {
-        border-radius: 1rem;
+        border-radius: 24px;
       }
     }
     
-    .floating-controls {
+    .local-video-container {
+      position: fixed;
+      top: 80px;
+      right: 16px;
+      width: 80px;
+      height: 120px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      z-index: 25;
+      transition: all 0.3s ease;
+    }
+    
+    @media (min-width: 640px) {
+      .local-video-container {
+        width: 120px;
+        height: 160px;
+        top: 100px;
+        right: 24px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .local-video-container {
+        width: 140px;
+        height: 200px;
+        border-radius: 20px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .local-video-container {
+        width: 160px;
+        height: 240px;
+      }
+    }
+    
+    .controls-container {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-      padding: 2rem 1rem 2rem;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%);
+      padding: 32px 16px 32px;
       z-index: 30;
     }
     
     @media (min-width: 768px) {
-      .floating-controls {
+      .controls-container {
         position: absolute;
-        bottom: 2rem;
+        bottom: 32px;
         left: 50%;
         right: auto;
         transform: translateX(-50%);
@@ -88,53 +193,224 @@
       }
     }
     
+    .status-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+      padding: 16px;
+      z-index: 40;
+    }
+    
+    .participant-info {
+      position: fixed;
+      top: 80px;
+      left: 16px;
+      right: 120px;
+      z-index: 25;
+    }
+    
+    @media (min-width: 640px) {
+      .participant-info {
+        right: 160px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .participant-info {
+        right: 180px;
+      }
+    }
+    
     .chat-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(20px);
       transform: translateX(100%);
-      transition: transform 0.3s ease-in-out;
+      transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      z-index: 35;
+    }
+    
+    @media (min-width: 768px) {
+      .chat-panel {
+        width: 350px;
+      }
     }
     
     .chat-panel.open {
       transform: translateX(0);
     }
+    
+    .floating-notification {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 500;
+      z-index: 50;
+      transform: translateY(-100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .floating-notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .floating-notification.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .floating-notification.error {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .floating-notification.info {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .floating-notification.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    .connection-quality {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .quality-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 2s infinite;
+    }
+    
+    .quality-dot.good {
+      background: #10b981;
+    }
+    
+    .quality-dot.medium {
+      background: #f59e0b;
+    }
+    
+    .pre-call-interface {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    
+    .id-display {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      padding: 8px;
+    }
+    
+    @media (min-width: 768px) {
+      .id-display {
+        font-size: 2.5rem;
+        letter-spacing: 6px;
+      }
+    }
+    
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
-<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative h-screen overflow-hidden">
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
   
   <!-- Status Bar -->
-  <div class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 glass-effect">
-    <div class="flex items-center space-x-2">
-      <div class="w-3 h-3 rounded-full bg-green-400 pulse-animation"></div>
-      <span class="text-sm font-medium" id="connectionStatus">Connected</span>
-    </div>
-    
-    <div class="flex items-center space-x-4">
-      <div class="flex items-center space-x-1" id="networkIndicator">
-        <i class="fas fa-signal text-green-400"></i>
-        <span class="text-xs" id="networkQuality">HD</span>
+  <div class="status-bar">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="connection-quality">
+          <div class="quality-dot good" id="connectionDot"></div>
+          <span class="text-sm font-medium" id="connectionStatus">Connecting...</span>
+        </div>
       </div>
       
-      <div class="text-sm font-mono" id="callTimer">00:00</div>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-signal text-sm" id="networkIcon"></i>
+          <span class="text-xs font-medium" id="networkQuality">HD</span>
+        </div>
+        
+        <div class="text-sm font-mono font-bold" id="callTimer">00:00</div>
+        
+        <div class="flex items-center space-x-1">
+          <div class="w-2 h-2 bg-green-400 rounded-full pulse-ring"></div>
+          <span class="text-xs">Live</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Notification -->
+  <div id="floatingNotification" class="floating-notification">
+    <div class="flex items-center space-x-3">
+      <i class="fas fa-info-circle" id="notificationIcon"></i>
+      <span id="notificationText">Notification</span>
     </div>
   </div>
 
   <!-- Incoming Call Modal -->
-  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center">
-    <div class="text-center slide-up max-w-sm mx-auto p-6">
-      <div class="mb-6">
-        <div class="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4 pulse-animation">
-          <i class="fas fa-user text-4xl text-white"></i>
+  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="slide-up text-center max-w-sm mx-auto p-8">
+      <div class="mb-8">
+        <div class="relative inline-block">
+          <div class="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center mb-6 bounce-in">
+            <i class="fas fa-user text-4xl text-white"></i>
+          </div>
+          <div class="absolute -inset-2 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 opacity-30 pulse-ring"></div>
         </div>
-        <h2 class="text-2xl font-semibold mb-2">Incoming Call</h2>
-        <p class="text-gray-300" id="callerInfo">Unknown Caller</p>
+        
+        <h2 class="text-3xl font-bold mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+          Incoming Call
+        </h2>
+        <p class="text-gray-300 text-lg" id="callerInfo">
+          <span class="font-mono" id="callerIdDisplay">Unknown</span>
+        </p>
       </div>
       
-      <div class="flex justify-center space-x-8">
-        <button id="declineCall" class="call-button bg-red-500 hover:bg-red-600">
-          <i class="fas fa-phone-slash text-xl"></i>
+      <div class="flex justify-center space-x-12">
+        <button id="declineCall" class="call-button danger-button w-16 h-16">
+          <i class="fas fa-phone-slash text-2xl"></i>
         </button>
-        <button id="acceptCall" class="call-button bg-green-500 hover:bg-green-600">
-          <i class="fas fa-phone text-xl"></i>
+        <button id="acceptCall" class="call-button primary-button w-16 h-16">
+          <i class="fas fa-phone text-2xl"></i>
         </button>
       </div>
     </div>
@@ -142,438 +418,212 @@
 
   <!-- Main Video Container -->
   <div class="relative h-full">
-    <!-- Remote Video (Full Screen) -->
-    <div class="video-container h-full bg-gray-900 relative">
+    <!-- Remote Video Background -->
+    <div class="video-container h-full relative">
       <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
       
       <!-- No Video Placeholder -->
-      <div id="remoteVideoPlaceholder" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
-        <div class="text-center">
-          <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4">
-            <i class="fas fa-user text-3xl text-white"></i>
+      <div id="remoteVideoPlaceholder" class="absolute inset-0 flex items-center justify-center">
+        <div class="text-center fade-in">
+          <div class="relative mb-8">
+            <div class="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
+              <i class="fas fa-user text-4xl text-gray-300"></i>
+            </div>
+            <div class="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 opacity-20 pulse-ring"></div>
           </div>
-          <p class="text-lg font-medium">Waiting for connection...</p>
-          <p class="text-sm text-gray-400" id="waitingMessage">Connecting to peer</p>
+          <h3 class="text-2xl font-bold mb-2">Waiting for connection...</h3>
+          <p class="text-gray-400" id="waitingMessage">Connecting to peer</p>
+          <div class="loading-spinner mx-auto mt-4"></div>
         </div>
       </div>
+      
+      <!-- Video Overlay Effects -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30 pointer-events-none"></div>
     </div>
 
     <!-- Local Video (Picture-in-Picture) -->
-    <div class="fixed top-20 right-4 w-24 h-32 md:w-32 md:h-44 lg:w-40 lg:h-56 rounded-xl overflow-hidden shadow-2xl z-20 transition-all duration-300" id="localVideoContainer">
+    <div class="local-video-container">
       <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
-      <button id="switchCamera" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
-        <i class="fas fa-sync-alt text-xs"></i>
-      </button>
+      
+      <!-- Local Video Controls -->
+      <div class="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        <button id="switchCamera" class="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-all">
+          <i class="fas fa-sync-alt text-xs"></i>
+        </button>
+      </div>
+      
+      <!-- Video Status Indicators -->
+      <div class="absolute top-2 left-2 flex space-x-1">
+        <div id="videoStatusIndicator" class="w-2 h-2 bg-green-400 rounded-full"></div>
+        <div id="audioStatusIndicator" class="w-2 h-2 bg-green-400 rounded-full"></div>
+      </div>
     </div>
 
     <!-- Participant Info -->
-    <div class="absolute top-20 left-4 right-4 z-20 fade-in" id="participantInfo">
-      <div class="glass-effect rounded-xl p-4 max-w-xs">
+    <div class="participant-info fade-in" id="participantInfo" style="display: none;">
+      <div class="glass-morphism rounded-2xl p-4">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <i class="fas fa-user text-sm"></i>
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <i class="fas fa-user text-lg text-white"></i>
           </div>
-          <div>
-            <p class="font-medium" id="participantName">Participant</p>
-            <p class="text-xs text-gray-300" id="participantId">ID: <span id="displayParticipantId">----</span></p>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-lg" id="participantName">Participant</p>
+            <p class="text-sm text-gray-300 font-mono" id="participantId">ID: <span id="displayParticipantId">----</span></p>
+          </div>
+          <div class="connection-quality">
+            <div class="quality-dot good" id="participantConnectionDot"></div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Call Controls -->
-    <div class="floating-controls">
-      <div class="flex justify-center items-center space-x-4 md:space-x-6">
+    <div class="controls-container">
+      <div class="flex justify-center items-center space-x-4">
         
-        <!-- Chat Button -->
-        <button id="toggleChat" class="call-button bg-gray-600/80 hover:bg-gray-500/80 relative">
-          <i class="fas fa-comment text-lg"></i>
-          <span id="chatNotification" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center">!</span>
-        </button>
-
-        <!-- Screen Share Button -->
-        <button id="shareScreen" class="call-button bg-gray-600/80 hover:bg-gray-500/80">
+        <!-- Screen Share -->
+        <button id="shareScreen" class="call-button" title="Share Screen">
           <i class="fas fa-desktop text-lg"></i>
         </button>
 
         <!-- Mute Button -->
-        <button id="toggleMute" class="call-button bg-gray-600/80 hover:bg-gray-500/80" data-enabled="true">
+        <button id="toggleMute" class="call-button" data-enabled="true" title="Mute/Unmute">
           <i class="fas fa-microphone text-lg"></i>
         </button>
 
         <!-- End Call Button -->
-        <button id="endCall" class="call-button bg-red-500 hover:bg-red-600 w-16 h-16 hidden">
+        <button id="endCall" class="call-button danger-button w-16 h-16 hidden" title="End Call">
           <i class="fas fa-phone-slash text-xl"></i>
         </button>
 
-        <!-- Video Toggle Button -->
-        <button id="toggleVideo" class="call-button bg-gray-600/80 hover:bg-gray-500/80" data-enabled="true">
+        <!-- Video Toggle -->
+        <button id="toggleVideo" class="call-button" data-enabled="true" title="Camera On/Off">
           <i class="fas fa-video text-lg"></i>
         </button>
 
-        <!-- More Options -->
-        <button id="moreOptions" class="call-button bg-gray-600/80 hover:bg-gray-500/80">
-          <i class="fas fa-ellipsis-v text-lg"></i>
+        <!-- Chat Button -->
+        <button id="toggleChat" class="call-button relative" title="Chat">
+          <i class="fas fa-comment text-lg"></i>
+          <span id="chatNotificationBadge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">0</span>
         </button>
 
       </div>
     </div>
 
     <!-- Pre-Call Interface -->
-    <div id="preCallInterface" class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center z-10">
-      <div class="text-center max-w-md mx-auto p-6">
-        <h1 class="text-3xl font-bold mb-2">Video Call</h1>
-        <p class="text-gray-400 mb-8">Connect with anyone, anywhere</p>
+    <div id="preCallInterface" class="pre-call-interface">
+      <div class="text-center max-w-md mx-auto p-8">
+        <div class="mb-8 fade-in">
+          <h1 class="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            Video Call
+          </h1>
+          <p class="text-gray-400 text-lg">Connect instantly with anyone, anywhere</p>
+        </div>
         
-        <div class="glass-effect rounded-2xl p-6 mb-6">
-          <p class="text-sm text-gray-300 mb-2">Your ID</p>
-          <div class="text-2xl font-mono text-blue-400 mb-4" id="myPeerId">----</div>
+        <div class="glass-morphism rounded-3xl p-8 mb-8 bounce-in">
+          <div class="mb-6">
+            <p class="text-sm text-gray-300 mb-3 font-medium">Your Connection ID</p>
+            <div class="glass-morphism rounded-2xl p-4 mb-6">
+              <div class="id-display" id="myPeerId">
+                <div class="loading-spinner mx-auto"></div>
+              </div>
+            </div>
+          </div>
           
-          <div class="space-y-4">
+          <div class="space-y-6">
             <div>
+              <label class="block text-sm font-medium text-gray-300 mb-3">Enter Friend's ID</label>
               <input
                 type="text"
                 id="peerIdInput"
                 placeholder="Enter 4-digit ID"
-                class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-blue-400 text-center text-lg font-mono"
+                class="input-field w-full text-center text-xl font-mono tracking-widest"
                 maxlength="4"
                 pattern="[0-9]{4}"
+                autocomplete="off"
               />
             </div>
             
             <button
               id="callButton"
-              class="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="w-full py-4 px-8 primary-button rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center space-x-3"
               disabled
             >
-              <i class="fas fa-phone mr-2"></i>
-              Start Call
+              <i class="fas fa-phone text-lg"></i>
+              <span>Start Video Call</span>
             </button>
           </div>
         </div>
         
-        <div class="text-xs text-gray-500">
-          <p>Share your ID with others to receive calls</p>
+        <div class="text-center space-y-2">
+          <p class="text-xs text-gray-500">Share your ID with friends to receive calls</p>
+          <p class="text-xs text-gray-600">End-to-end encrypted • Secure connection</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Chat Panel -->
-  <div id="chatPanel" class="chat-panel fixed top-0 right-0 w-full md:w-80 h-full bg-gray-900/95 backdrop-blur-sm z-40">
+  <div id="chatPanel" class="chat-panel">
     <div class="flex flex-col h-full">
       <!-- Chat Header -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-700">
-        <h3 class="font-semibold">Chat</h3>
-        <button id="closeChatPanel" class="text-gray-400 hover:text-white">
-          <i class="fas fa-times"></i>
+      <div class="flex items-center justify-between p-6 border-b border-gray-700/50 glass-morphism">
+        <div class="flex items-center space-x-3">
+          <i class="fas fa-comment text-xl text-blue-400"></i>
+          <h3 class="font-bold text-xl">Chat</h3>
+        </div>
+        <button id="closeChatPanel" class="w-10 h-10 rounded-full bg-gray-700/50 hover:bg-gray-600/50 flex items-center justify-center transition-colors">
+          <i class="fas fa-times text-gray-300"></i>
         </button>
       </div>
       
-      <!-- Messages -->
-      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3">
-        <!-- Messages will be added here -->
+      <!-- Messages Container -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <div class="text-center text-gray-500 text-sm">
+          <i class="fas fa-lock mb-2"></i>
+          <p>Messages are end-to-end encrypted</p>
+        </div>
       </div>
       
       <!-- Chat Input -->
-      <div class="p-4 border-t border-gray-700">
-        <div class="flex space-x-2">
+      <div class="p-6 border-t border-gray-700/50">
+        <div class="flex space-x-3">
           <input
             type="text"
             id="chatInput"
             placeholder="Type a message..."
-            class="flex-1 px-3 py-2 rounded-lg bg-gray-800 border border-gray-600 focus:outline-none focus:border-blue-400"
+            class="flex-1 px-4 py-3 rounded-2xl bg-gray-800/50 border border-gray-600/50 focus:outline-none focus:border-blue-400 focus:bg-gray-800/70 transition-all"
+            maxlength="500"
           />
-          <button id="sendMessage" class="px-4 py-2 bg-blue-500 rounded-lg hover:bg-blue-600">
-            <i class="fas fa-paper-plane"></i>
+          <button id="sendMessage" class="w-12 h-12 rounded-2xl bg-blue-500 hover:bg-blue-600 flex items-center justify-center transition-colors">
+            <i class="fas fa-paper-plane text-lg"></i>
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- More Options Menu -->
-  <div id="moreOptionsMenu" class="hidden fixed bottom-24 right-4 glass-effect rounded-xl p-2 z-30">
-    <button id="toggleSpeaker" class="w-full text-left px-4 py-2 hover:bg-white/10 rounded flex items-center space-x-3">
-      <i class="fas fa-volume-up w-4"></i>
-      <span>Speaker</span>
-    </button>
-    <button id="togglePiP" class="w-full text-left px-4 py-2 hover:bg-white/10 rounded flex items-center space-x-3">
-      <i class="fas fa-external-link-alt w-4"></i>
-      <span>Picture in Picture</span>
-    </button>
-  </div>
-
+  <!-- Scripts -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    class ModernVideoCall {
+    class ModernVideoCallApp {
       constructor() {
+        // Core properties
+        this.peer = null;
         this.currentCall = null;
         this.localStream = null;
         this.isVideoEnabled = true;
         this.isAudioEnabled = true;
         this.isScreenSharing = false;
-        this.currentResolution = '1280x720';
-        this.callStartTime = null;
-        this.callTimerInterval = null;
-        this.networkCheckInterval = null;
         this.currentFacingMode = 'user';
+        this.incomingCall = null;
+        
+        // UI state
+        this.isCallActive = false;
+        this.isChatOpen = false;
         this.chatMessages = [];
+        this.unreadMessages = 0;
         
-        this.initializePeer();
-        this.setupEventListeners();
-        this.initializeMedia();
-      }
-
-      generateNumericId() {
-        return Math.floor(1000 + Math.random() * 9000).toString();
-      }
-
-      initializePeer() {
-        const iceServers = [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:3478" },
-          { urls: "turn:global.relay.metered.ca:80", username: "5ee7cfc816da5c0395dd306e", credential: "TUQP0WknEKBhwTkG" }
-        ];
-
-        this.peer = new Peer(this.generateNumericId(), {
-          debug: 0,
-          config: { iceServers }
-        });
-
-        this.peer.on('open', (id) => {
-          document.getElementById('myPeerId').textContent = id;
-          this.startNetworkMonitoring();
-        });
-
-        this.peer.on('call', (call) => {
-          this.handleIncomingCall(call);
-        });
-
-        this.peer.on('error', (err) => {
-          console.error('PeerJS Error:', err);
-          this.showNotification(`Connection Error: ${err.type}`, 'error');
-        });
-      }
-
-      async initializeMedia() {
-        try {
-          this.localStream = await navigator.mediaDevices.getUserMedia({
-            video: { 
-              width: { ideal: 1280 }, 
-              height: { ideal: 720 },
-              facingMode: this.currentFacingMode
-            },
-            audio: { 
-              noiseSuppression: true, 
-              echoCancellation: true,
-              autoGainControl: true
-            }
-          });
-
-          document.getElementById('localVideo').srcObject = this.localStream;
-          return true;
-        } catch (error) {
-          console.error('Media Error:', error);
-          this.showNotification('Camera/microphone access required!', 'error');
-          return false;
-        }
-      }
-
-      setupEventListeners() {
-        // Pre-call interface
-        document.getElementById('peerIdInput').addEventListener('input', (e) => {
-          e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
-          document.getElementById('callButton').disabled = e.target.value.length !== 4;
-        });
-
-        document.getElementById('callButton').addEventListener('click', () => {
-          this.initiateCall();
-        });
-
-        // Call controls
-        document.getElementById('endCall').addEventListener('click', () => {
-          this.endCall();
-        });
-
-        document.getElementById('toggleMute').addEventListener('click', () => {
-          this.toggleMute();
-        });
-
-        document.getElementById('toggleVideo').addEventListener('click', () => {
-          this.toggleVideo();
-        });
-
-        document.getElementById('shareScreen').addEventListener('click', () => {
-          this.toggleScreenShare();
-        });
-
-        document.getElementById('switchCamera').addEventListener('click', () => {
-          this.switchCamera();
-        });
-
-        // Chat functionality
-        document.getElementById('toggleChat').addEventListener('click', () => {
-          this.toggleChat();
-        });
-
-        document.getElementById('closeChatPanel').addEventListener('click', () => {
-          this.toggleChat();
-        });
-
-        document.getElementById('sendMessage').addEventListener('click', () => {
-          this.sendChatMessage();
-        });
-
-        document.getElementById('chatInput').addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            this.sendChatMessage();
-          }
-        });
-
-        // More options
-        document.getElementById('moreOptions').addEventListener('click', () => {
-          this.toggleMoreOptions();
-        });
-
-        document.getElementById('togglePiP').addEventListener('click', () => {
-          this.togglePictureInPicture();
-        });
-
-        // Incoming call modal
-        document.getElementById('acceptCall').addEventListener('click', () => {
-          this.acceptIncomingCall();
-        });
-
-        document.getElementById('declineCall').addEventListener('click', () => {
-          this.declineIncomingCall();
-        });
-
-        // Window events
-        window.addEventListener('beforeunload', () => {
-          this.cleanup();
-        });
-
-        // Click outside to close menus
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('#moreOptionsMenu') && !e.target.closest('#moreOptions')) {
-            document.getElementById('moreOptionsMenu').classList.add('hidden');
-          }
-        });
-      }
-
-      async initiateCall() {
-        const partnerId = document.getElementById('peerIdInput').value.trim();
-        if (partnerId.length !== 4) return;
-
-        if (!this.localStream) {
-          const success = await this.initializeMedia();
-          if (!success) return;
-        }
-
-        this.showCallInterface();
-        this.updateConnectionStatus('Calling...');
-
-        const call = this.peer.call(partnerId, this.localStream);
-        this.currentCall = call;
-
-        call.on('stream', (remoteStream) => {
-          this.handleRemoteStream(remoteStream);
-        });
-
-        call.on('close', () => {
-          this.endCall();
-        });
-
-        call.on('error', (err) => {
-          console.error('Call Error:', err);
-          this.showNotification('Call failed to connect', 'error');
-          this.endCall();
-        });
-
-        this.startCallTimer();
-      }
-
-      handleIncomingCall(call) {
-        this.incomingCall = call;
-        document.getElementById('callerInfo').textContent = `ID: ${call.peer}`;
-        document.getElementById('incomingCallModal').classList.remove('hidden');
-      }
-
-      async acceptIncomingCall() {
-        document.getElementById('incomingCallModal').classList.add('hidden');
-
-        if (!this.localStream) {
-          const success = await this.initializeMedia();
-          if (!success) {
-            this.incomingCall.close();
-            return;
-          }
-        }
-
-        this.showCallInterface();
-        this.incomingCall.answer(this.localStream);
-        this.currentCall = this.incomingCall;
-
-        this.currentCall.on('stream', (remoteStream) => {
-          this.handleRemoteStream(remoteStream);
-        });
-
-        this.currentCall.on('close', () => {
-          this.endCall();
-        });
-
-        this.startCallTimer();
-      }
-
-      declineIncomingCall() {
-        document.getElementById('incomingCallModal').classList.add('hidden');
-        if (this.incomingCall) {
-          this.incomingCall.close();
-          this.incomingCall = null;
-        }
-      }
-
-      handleRemoteStream(remoteStream) {
-        document.getElementById('remoteVideo').srcObject = remoteStream;
-        document.getElementById('remoteVideoPlaceholder').style.display = 'none';
-        document.getElementById('displayParticipantId').textContent = this.currentCall.peer;
-        this.updateConnectionStatus('Connected');
-      }
-
-      showCallInterface() {
-        document.getElementById('preCallInterface').style.display = 'none';
-        document.getElementById('endCall').classList.remove('hidden');
-        document.getElementById('participantInfo').style.display = 'block';
-      }
-
-      endCall() {
-        if (this.currentCall) {
-          this.currentCall.close();
-          this.currentCall = null;
-        }
-
-        document.getElementById('remoteVideo').srcObject = null;
-        document.getElementById('remoteVideoPlaceholder').style.display = 'flex';
-        document.getElementById('endCall').classList.add('hidden');
-        document.getElementById('preCallInterface').style.display = 'flex';
-        document.getElementById('participantInfo').style.display = 'none';
-        
-        this.stopCallTimer();
-        this.updateConnectionStatus('Disconnected');
-        
-        // Reset UI states
-        this.resetCallStates();
-      }
-
-      toggleMute() {
-        this.isAudioEnabled = !this.isAudioEnabled;
-        if (this.localStream) {
-          this.localStream.getAudioTracks()[0].enabled = this.isAudioEnabled;
-        }
-        
-        const button = document.getElementById('toggleMute');
-        const icon = button.querySelector('i');
-        
-        if (this.isAudioEnabled) {
-          button.className = button.className.replace('bg-red-500
+        // Timers and intervals
+        this.callStartTime = null;
+        this.callTimerIn
