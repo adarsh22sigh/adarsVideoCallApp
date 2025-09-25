@@ -1,293 +1,579 @@
- 
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Video Call App</title>
+  <title>Video Call - WhatsApp Style</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    .call-buttons {
-      @apply rounded-full p-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .call-button {
+      @apply w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm;
+    }
+    
+    .call-button:active {
+      @apply scale-95;
+    }
+    
+    .glass-effect {
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .pulse-animation {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+    
+    .slide-up {
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .video-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 0;
+    }
+    
+    @media (min-width: 768px) {
+      .video-container {
+        border-radius: 1rem;
+      }
+    }
+    
+    .floating-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 2rem 1rem 2rem;
+      z-index: 30;
+    }
+    
+    @media (min-width: 768px) {
+      .floating-controls {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        background: transparent;
+        padding: 0;
+      }
+    }
+    
+    .chat-panel {
+      transform: translateX(100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    .chat-panel.open {
+      transform: translateX(0);
     }
   </style>
 </head>
-<body class="bg-black text-white relative h-screen overflow-hidden">
-  <!-- Network Status Indicator -->
-  <div class="fixed top-2 right-2 z-50 px-3 py-1 rounded-full bg-black/80 text-sm" id="networkStatus">
-    📶 Good Network
+
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white relative h-screen overflow-hidden">
+  
+  <!-- Status Bar -->
+  <div class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 glass-effect">
+    <div class="flex items-center space-x-2">
+      <div class="w-3 h-3 rounded-full bg-green-400 pulse-animation"></div>
+      <span class="text-sm font-medium" id="connectionStatus">Connected</span>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-1" id="networkIndicator">
+        <i class="fas fa-signal text-green-400"></i>
+        <span class="text-xs" id="networkQuality">HD</span>
+      </div>
+      
+      <div class="text-sm font-mono" id="callTimer">00:00</div>
+    </div>
   </div>
 
   <!-- Incoming Call Modal -->
-  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
-    <div class="text-center">
-      <h2 class="text-2xl mb-4">Incoming Call</h2>
-      <div class="flex gap-4 justify-center">
-        <button id="declineCall" class="call-buttons bg-red-500">✖</button>
-        <button id="acceptCall" class="call-buttons bg-green-500">✔</button>
+  <div id="incomingCallModal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center">
+    <div class="text-center slide-up max-w-sm mx-auto p-6">
+      <div class="mb-6">
+        <div class="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4 pulse-animation">
+          <i class="fas fa-user text-4xl text-white"></i>
+        </div>
+        <h2 class="text-2xl font-semibold mb-2">Incoming Call</h2>
+        <p class="text-gray-300" id="callerInfo">Unknown Caller</p>
+      </div>
+      
+      <div class="flex justify-center space-x-8">
+        <button id="declineCall" class="call-button bg-red-500 hover:bg-red-600">
+          <i class="fas fa-phone-slash text-xl"></i>
+        </button>
+        <button id="acceptCall" class="call-button bg-green-500 hover:bg-green-600">
+          <i class="fas fa-phone text-xl"></i>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="relative z-10 container mx-auto px-4 h-full">
-    <!-- Video Containers -->
-    <div class="h-full flex flex-col">
-      <!-- Remote Video -->
-      <div class="flex-1 relative rounded-2xl overflow-hidden bg-black">
-        <video id="remoteVideo" autoplay class="w-full h-full object-cover"></video>
-      </div>
+  <!-- Main Video Container -->
+  <div class="relative h-full">
+    <!-- Remote Video (Full Screen) -->
+    <div class="video-container h-full bg-gray-900 relative">
+      <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
       
-      <!-- Local Video -->
-      <div class="fixed md:absolute bottom-4 right-4 w-20 h-28 md:w-32 md:h-48 rounded-xl overflow-hidden shadow-lg z-20">
-        <video id="localVideo" autoplay muted class="w-full h-full object-cover"></video>
-      </div>
-
-      <!-- Call Controls -->
-      <div class="fixed md:absolute bottom-20 md:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 md:gap-4 z-20">
-        <button id="endCall" class="call-buttons hidden">
-          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85c-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
-          </svg>
-        </button>
-        <button id="toggleVideo" class="call-buttons">
-          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15 8v8H5V8h10zm1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z"/>
-          </svg>
-        </button>
-        <button id="toggleMute" class="call-buttons">
-          <svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Call Interface -->
-      <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
-        <h1 class="text-xl font-bold">Video Call</h1>
-        <p class="text-sm">Your ID: <span id="myPeerId" class="font-mono text-blue-400"></span></p>
-      </div>
-
-      <!-- Dialer -->
-      <div class="fixed md:absolute bottom-36 md:bottom-28 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
-        <input
-          type="number"
-          id="peerIdInput"
-          placeholder="Enter ID"
-          class="w-32 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm focus:outline-none"
-          min="1000"
-          max="9999"
-        />
-        <button
-          id="callButton"
-          class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600"
-        >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-5 5 5 5"/>
-          </svg>
-        </button>
+      <!-- No Video Placeholder -->
+      <div id="remoteVideoPlaceholder" class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
+        <div class="text-center">
+          <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4">
+            <i class="fas fa-user text-3xl text-white"></i>
+          </div>
+          <p class="text-lg font-medium">Waiting for connection...</p>
+          <p class="text-sm text-gray-400" id="waitingMessage">Connecting to peer</p>
+        </div>
       </div>
     </div>
+
+    <!-- Local Video (Picture-in-Picture) -->
+    <div class="fixed top-20 right-4 w-24 h-32 md:w-32 md:h-44 lg:w-40 lg:h-56 rounded-xl overflow-hidden shadow-2xl z-20 transition-all duration-300" id="localVideoContainer">
+      <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+      <button id="switchCamera" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+        <i class="fas fa-sync-alt text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Participant Info -->
+    <div class="absolute top-20 left-4 right-4 z-20 fade-in" id="participantInfo">
+      <div class="glass-effect rounded-xl p-4 max-w-xs">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <i class="fas fa-user text-sm"></i>
+          </div>
+          <div>
+            <p class="font-medium" id="participantName">Participant</p>
+            <p class="text-xs text-gray-300" id="participantId">ID: <span id="displayParticipantId">----</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call Controls -->
+    <div class="floating-controls">
+      <div class="flex justify-center items-center space-x-4 md:space-x-6">
+        
+        <!-- Chat Button -->
+        <button id="toggleChat" class="call-button bg-gray-600/80 hover:bg-gray-500/80 relative">
+          <i class="fas fa-comment text-lg"></i>
+          <span id="chatNotification" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center">!</span>
+        </button>
+
+        <!-- Screen Share Button -->
+        <button id="shareScreen" class="call-button bg-gray-600/80 hover:bg-gray-500/80">
+          <i class="fas fa-desktop text-lg"></i>
+        </button>
+
+        <!-- Mute Button -->
+        <button id="toggleMute" class="call-button bg-gray-600/80 hover:bg-gray-500/80" data-enabled="true">
+          <i class="fas fa-microphone text-lg"></i>
+        </button>
+
+        <!-- End Call Button -->
+        <button id="endCall" class="call-button bg-red-500 hover:bg-red-600 w-16 h-16 hidden">
+          <i class="fas fa-phone-slash text-xl"></i>
+        </button>
+
+        <!-- Video Toggle Button -->
+        <button id="toggleVideo" class="call-button bg-gray-600/80 hover:bg-gray-500/80" data-enabled="true">
+          <i class="fas fa-video text-lg"></i>
+        </button>
+
+        <!-- More Options -->
+        <button id="moreOptions" class="call-button bg-gray-600/80 hover:bg-gray-500/80">
+          <i class="fas fa-ellipsis-v text-lg"></i>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Pre-Call Interface -->
+    <div id="preCallInterface" class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center z-10">
+      <div class="text-center max-w-md mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-2">Video Call</h1>
+        <p class="text-gray-400 mb-8">Connect with anyone, anywhere</p>
+        
+        <div class="glass-effect rounded-2xl p-6 mb-6">
+          <p class="text-sm text-gray-300 mb-2">Your ID</p>
+          <div class="text-2xl font-mono text-blue-400 mb-4" id="myPeerId">----</div>
+          
+          <div class="space-y-4">
+            <div>
+              <input
+                type="text"
+                id="peerIdInput"
+                placeholder="Enter 4-digit ID"
+                class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-blue-400 text-center text-lg font-mono"
+                maxlength="4"
+                pattern="[0-9]{4}"
+              />
+            </div>
+            
+            <button
+              id="callButton"
+              class="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              <i class="fas fa-phone mr-2"></i>
+              Start Call
+            </button>
+          </div>
+        </div>
+        
+        <div class="text-xs text-gray-500">
+          <p>Share your ID with others to receive calls</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Panel -->
+  <div id="chatPanel" class="chat-panel fixed top-0 right-0 w-full md:w-80 h-full bg-gray-900/95 backdrop-blur-sm z-40">
+    <div class="flex flex-col h-full">
+      <!-- Chat Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-700">
+        <h3 class="font-semibold">Chat</h3>
+        <button id="closeChatPanel" class="text-gray-400 hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <!-- Messages -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <!-- Messages will be added here -->
+      </div>
+      
+      <!-- Chat Input -->
+      <div class="p-4 border-t border-gray-700">
+        <div class="flex space-x-2">
+          <input
+            type="text"
+            id="chatInput"
+            placeholder="Type a message..."
+            class="flex-1 px-3 py-2 rounded-lg bg-gray-800 border border-gray-600 focus:outline-none focus:border-blue-400"
+          />
+          <button id="sendMessage" class="px-4 py-2 bg-blue-500 rounded-lg hover:bg-blue-600">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- More Options Menu -->
+  <div id="moreOptionsMenu" class="hidden fixed bottom-24 right-4 glass-effect rounded-xl p-2 z-30">
+    <button id="toggleSpeaker" class="w-full text-left px-4 py-2 hover:bg-white/10 rounded flex items-center space-x-3">
+      <i class="fas fa-volume-up w-4"></i>
+      <span>Speaker</span>
+    </button>
+    <button id="togglePiP" class="w-full text-left px-4 py-2 hover:bg-white/10 rounded flex items-center space-x-3">
+      <i class="fas fa-external-link-alt w-4"></i>
+      <span>Picture in Picture</span>
+    </button>
   </div>
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    let currentCall = null;
-    let localStream = null;
-    let isVideoEnabled = true;
-    let isAudioEnabled = true;
-    let currentResolution = '1280x720';
-    let networkCheckInterval;
-
-    const generateNumericId = () => Math.floor(1000 + Math.random() * 9000).toString();
-
-    const iceServers = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun.l.google.com:5349" },
-  { urls: "stun:stun1.l.google.com:3478" },
-  { urls: "stun:stun1.l.google.com:5349" },
-  { urls: "stun:stun2.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:5349" },
-  { urls: "stun:stun3.l.google.com:3478" },
-  { urls: "stun:stun3.l.google.com:5349" },
-  { urls: "stun:stun4.l.google.com:19302" },
-  { urls: "stun:stun4.l.google.com:5349" },
-  { urls: "turn:global.relay.metered.ca:80", username: "5ee7cfc816da5c0395dd306e", credential: "TUQP0WknEKBhwTkG" },
-  { urls: "turn:global.relay.metered.ca:80", username: "04b62f0eabd80aae673b91a1", credential: "FJWFoGv7sBcJwhvG" },
-  { urls: "turn:global.relay.metered.ca:80", username: "c392afe8f98a6d1c30422cb7", credential: "vxx/RLgoJ/AzqqGS" },
-  { urls: "turn:global.relay.metered.ca:80", username: "8e8db6b5410fdda23699dc46", credential: "vZVNSMU4Ivd41c22" }
-];
-
-const peer = new Peer(generateNumericId(), {
-  debug: 0,
-  config: { iceServers }
-});
-
-    const elements = {
-      localVideo: document.getElementById('localVideo'),
-      remoteVideo: document.getElementById('remoteVideo'),
-      myPeerId: document.getElementById('myPeerId'),
-      peerIdInput: document.getElementById('peerIdInput'),
-      callButton: document.getElementById('callButton'),
-      incomingCallModal: document.getElementById('incomingCallModal'),
-      acceptCall: document.getElementById('acceptCall'),
-      declineCall: document.getElementById('declineCall'),
-      endCall: document.getElementById('endCall'),
-      toggleVideo: document.getElementById('toggleVideo'),
-      toggleMute: document.getElementById('toggleMute'),
-      networkStatus: document.getElementById('networkStatus')
-    };
-
-    const getVideoConstraints = (resolution) => {
-      const resolutions = {
-        '1280x720': { width: { ideal: 1280 }, height: { ideal: 720 } },
-        '640x360': { width: { ideal: 640 }, height: { ideal: 360 } }
-      };
-      return resolutions[resolution] || resolutions['640x360'];
-    };
-
-    const applyNetworkOptimization = async () => {
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      const isSlowNetwork = connection ? (connection.effectiveType === 'slow-2g' || connection.downlink < 1.5) : false;
-
-      if (isSlowNetwork && currentResolution !== '640x360') {
-        elements.networkStatus.textContent = '📶 Low Network (SD)';
-        elements.networkStatus.classList.add('text-yellow-500');
-        currentResolution = '640x360';
-        await initMedia(getVideoConstraints(currentResolution));
-      } else if (!isSlowNetwork && currentResolution !== '1280x720') {
-        elements.networkStatus.textContent = '📶 Good Network (HD)';
-        elements.networkStatus.classList.remove('text-yellow-500');
-        currentResolution = '1280x720';
-        await initMedia(getVideoConstraints(currentResolution));
+    class ModernVideoCall {
+      constructor() {
+        this.currentCall = null;
+        this.localStream = null;
+        this.isVideoEnabled = true;
+        this.isAudioEnabled = true;
+        this.isScreenSharing = false;
+        this.currentResolution = '1280x720';
+        this.callStartTime = null;
+        this.callTimerInterval = null;
+        this.networkCheckInterval = null;
+        this.currentFacingMode = 'user';
+        this.chatMessages = [];
+        
+        this.initializePeer();
+        this.setupEventListeners();
+        this.initializeMedia();
       }
-    };
 
-    const initMedia = async (constraints = getVideoConstraints('1280x720')) => {
-      try {
-        if (localStream) {
-          localStream.getTracks().forEach(track => track.stop());
-        }
+      generateNumericId() {
+        return Math.floor(1000 + Math.random() * 9000).toString();
+      }
 
-        localStream = await navigator.mediaDevices.getUserMedia({ 
-          video: constraints,
-          audio: { noiseSuppression: true, echoCancellation: true }
+      initializePeer() {
+        const iceServers = [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:3478" },
+          { urls: "turn:global.relay.metered.ca:80", username: "5ee7cfc816da5c0395dd306e", credential: "TUQP0WknEKBhwTkG" }
+        ];
+
+        this.peer = new Peer(this.generateNumericId(), {
+          debug: 0,
+          config: { iceServers }
         });
 
-        elements.localVideo.srcObject = localStream;
+        this.peer.on('open', (id) => {
+          document.getElementById('myPeerId').textContent = id;
+          this.startNetworkMonitoring();
+        });
 
-        if (currentCall) {
-          const videoTrack = localStream.getVideoTracks()[0];
-          const sender = currentCall.peerConnection.getSenders()
-            .find(s => s.track.kind === videoTrack.kind);
-          sender.replaceTrack(videoTrack);
+        this.peer.on('call', (call) => {
+          this.handleIncomingCall(call);
+        });
+
+        this.peer.on('error', (err) => {
+          console.error('PeerJS Error:', err);
+          this.showNotification(`Connection Error: ${err.type}`, 'error');
+        });
+      }
+
+      async initializeMedia() {
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              width: { ideal: 1280 }, 
+              height: { ideal: 720 },
+              facingMode: this.currentFacingMode
+            },
+            audio: { 
+              noiseSuppression: true, 
+              echoCancellation: true,
+              autoGainControl: true
+            }
+          });
+
+          document.getElementById('localVideo').srcObject = this.localStream;
+          return true;
+        } catch (error) {
+          console.error('Media Error:', error);
+          this.showNotification('Camera/microphone access required!', 'error');
+          return false;
         }
-        return true;
-      } catch (error) {
-        alert('Camera/microphone access required!');
-        console.error('Media Error:', error);
-        return false;
       }
-    };
 
-    peer.on('open', (id) => {
-      elements.myPeerId.textContent = id;
-      networkCheckInterval = setInterval(applyNetworkOptimization, 3000);
-      if (navigator.connection) {
-        navigator.connection.addEventListener('change', applyNetworkOptimization);
+      setupEventListeners() {
+        // Pre-call interface
+        document.getElementById('peerIdInput').addEventListener('input', (e) => {
+          e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+          document.getElementById('callButton').disabled = e.target.value.length !== 4;
+        });
+
+        document.getElementById('callButton').addEventListener('click', () => {
+          this.initiateCall();
+        });
+
+        // Call controls
+        document.getElementById('endCall').addEventListener('click', () => {
+          this.endCall();
+        });
+
+        document.getElementById('toggleMute').addEventListener('click', () => {
+          this.toggleMute();
+        });
+
+        document.getElementById('toggleVideo').addEventListener('click', () => {
+          this.toggleVideo();
+        });
+
+        document.getElementById('shareScreen').addEventListener('click', () => {
+          this.toggleScreenShare();
+        });
+
+        document.getElementById('switchCamera').addEventListener('click', () => {
+          this.switchCamera();
+        });
+
+        // Chat functionality
+        document.getElementById('toggleChat').addEventListener('click', () => {
+          this.toggleChat();
+        });
+
+        document.getElementById('closeChatPanel').addEventListener('click', () => {
+          this.toggleChat();
+        });
+
+        document.getElementById('sendMessage').addEventListener('click', () => {
+          this.sendChatMessage();
+        });
+
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            this.sendChatMessage();
+          }
+        });
+
+        // More options
+        document.getElementById('moreOptions').addEventListener('click', () => {
+          this.toggleMoreOptions();
+        });
+
+        document.getElementById('togglePiP').addEventListener('click', () => {
+          this.togglePictureInPicture();
+        });
+
+        // Incoming call modal
+        document.getElementById('acceptCall').addEventListener('click', () => {
+          this.acceptIncomingCall();
+        });
+
+        document.getElementById('declineCall').addEventListener('click', () => {
+          this.declineIncomingCall();
+        });
+
+        // Window events
+        window.addEventListener('beforeunload', () => {
+          this.cleanup();
+        });
+
+        // Click outside to close menus
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('#moreOptionsMenu') && !e.target.closest('#moreOptions')) {
+            document.getElementById('moreOptionsMenu').classList.add('hidden');
+          }
+        });
       }
-    });
 
-    peer.on('error', (err) => {
-  console.error('PeerJS Error:', err);
-  alert(`Error: ${err.type} - ${err.message}`);
-});
+      async initiateCall() {
+        const partnerId = document.getElementById('peerIdInput').value.trim();
+        if (partnerId.length !== 4) return;
 
+        if (!this.localStream) {
+          const success = await this.initializeMedia();
+          if (!success) return;
+        }
 
-    peer.on('call', async (call) => {
-      elements.incomingCallModal.classList.remove('hidden');
-      
-      elements.declineCall.onclick = () => {
-        call.close();
-        elements.incomingCallModal.classList.add('hidden');
-      };
+        this.showCallInterface();
+        this.updateConnectionStatus('Calling...');
 
-      elements.acceptCall.onclick = async () => {
-        elements.incomingCallModal.classList.add('hidden');
-        
-        if (!localStream) {
-          const success = await initMedia();
+        const call = this.peer.call(partnerId, this.localStream);
+        this.currentCall = call;
+
+        call.on('stream', (remoteStream) => {
+          this.handleRemoteStream(remoteStream);
+        });
+
+        call.on('close', () => {
+          this.endCall();
+        });
+
+        call.on('error', (err) => {
+          console.error('Call Error:', err);
+          this.showNotification('Call failed to connect', 'error');
+          this.endCall();
+        });
+
+        this.startCallTimer();
+      }
+
+      handleIncomingCall(call) {
+        this.incomingCall = call;
+        document.getElementById('callerInfo').textContent = `ID: ${call.peer}`;
+        document.getElementById('incomingCallModal').classList.remove('hidden');
+      }
+
+      async acceptIncomingCall() {
+        document.getElementById('incomingCallModal').classList.add('hidden');
+
+        if (!this.localStream) {
+          const success = await this.initializeMedia();
           if (!success) {
-            alert('Please allow camera/microphone access to accept call!');
-            call.close();
+            this.incomingCall.close();
             return;
           }
         }
 
-        elements.endCall.classList.remove('hidden');
-        call.answer(localStream);
-        currentCall = call;
-        
-        call.on('stream', (remoteStream) => {
-          elements.remoteVideo.srcObject = remoteStream;
+        this.showCallInterface();
+        this.incomingCall.answer(this.localStream);
+        this.currentCall = this.incomingCall;
+
+        this.currentCall.on('stream', (remoteStream) => {
+          this.handleRemoteStream(remoteStream);
         });
-      };
-    });
 
-    elements.callButton.addEventListener('click', async () => {
-      const partnerId = elements.peerIdInput.value.trim();
-      if (partnerId.length !== 4) return;
+        this.currentCall.on('close', () => {
+          this.endCall();
+        });
 
-      if (!localStream) {
-        const success = await initMedia();
-        if (!success) {
-          alert('Please allow camera/microphone access to make call!');
-          return;
+        this.startCallTimer();
+      }
+
+      declineIncomingCall() {
+        document.getElementById('incomingCallModal').classList.add('hidden');
+        if (this.incomingCall) {
+          this.incomingCall.close();
+          this.incomingCall = null;
         }
       }
 
-      const call = peer.call(partnerId, localStream);
-      elements.endCall.classList.remove('hidden');
-      
-      call.on('stream', (remoteStream) => {
-        elements.remoteVideo.srcObject = remoteStream;
-      });
-      
-      currentCall = call;
-    });
-
-    elements.endCall.addEventListener('click', () => {
-      if (currentCall) {
-        currentCall.close();
-        elements.remoteVideo.srcObject = null;
-        elements.endCall.classList.add('hidden');
+      handleRemoteStream(remoteStream) {
+        document.getElementById('remoteVideo').srcObject = remoteStream;
+        document.getElementById('remoteVideoPlaceholder').style.display = 'none';
+        document.getElementById('displayParticipantId').textContent = this.currentCall.peer;
+        this.updateConnectionStatus('Connected');
       }
-    });
 
-    elements.toggleVideo.addEventListener('click', () => {
-      isVideoEnabled = !isVideoEnabled;
-      localStream.getVideoTracks()[0].enabled = isVideoEnabled;
-      elements.toggleVideo.classList.toggle('bg-red-500', !isVideoEnabled);
-    });
-
-    elements.toggleMute.addEventListener('click', () => {
-      isAudioEnabled = !isAudioEnabled;
-      localStream.getAudioTracks()[0].enabled = isAudioEnabled;
-      elements.toggleMute.classList.toggle('bg-red-500', !isAudioEnabled);
-    });
-
-    elements.peerIdInput.addEventListener('input', (e) => {
-      e.target.value = e.target.value.slice(0, 4);
-    });
-
-    window.addEventListener('beforeunload', () => {
-      clearInterval(networkCheckInterval);
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+      showCallInterface() {
+        document.getElementById('preCallInterface').style.display = 'none';
+        document.getElementById('endCall').classList.remove('hidden');
+        document.getElementById('participantInfo').style.display = 'block';
       }
-    });
 
-    initMedia();
-  </script>
-</body>
-</html>
+      endCall() {
+        if (this.currentCall) {
+          this.currentCall.close();
+          this.currentCall = null;
+        }
+
+        document.getElementById('remoteVideo').srcObject = null;
+        document.getElementById('remoteVideoPlaceholder').style.display = 'flex';
+        document.getElementById('endCall').classList.add('hidden');
+        document.getElementById('preCallInterface').style.display = 'flex';
+        document.getElementById('participantInfo').style.display = 'none';
+        
+        this.stopCallTimer();
+        this.updateConnectionStatus('Disconnected');
+        
+        // Reset UI states
+        this.resetCallStates();
+      }
+
+      toggleMute() {
+        this.isAudioEnabled = !this.isAudioEnabled;
+        if (this.localStream) {
+          this.localStream.getAudioTracks()[0].enabled = this.isAudioEnabled;
+        }
+        
+        const button = document.getElementById('toggleMute');
+        const icon = button.querySelector('i');
+        
+        if (this.isAudioEnabled) {
+          button.className = button.className.replace('bg-red-500
